@@ -1,0 +1,99 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and role information.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "The user's unique ID."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The user's email address."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The user's display name."
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "The user's profile picture URL."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["owner", "premium", "guest"],
+          "description": "The user's role."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the user was created."
+        }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "ActivityLog": {
+      "title": "ActivityLog",
+      "description": "System activity log entry.",
+      "type": "object",
+      "properties": {
+        "msg": {
+          "type": "string",
+          "description": "The log message."
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the log (e.g., OK, WARNING, ERROR)."
+        },
+        "color": {
+          "type": "string",
+          "description": "The color class for the status."
+        },
+        "time": {
+          "type": "string",
+          "description": "The formatted time string."
+        },
+        "timestamp": {
+          "type": "number",
+          "description": "The timestamp of the log."
+        }
+      },
+      "required": ["msg", "status", "color", "time", "timestamp"]
+    },
+    "SystemStats": {
+      "title": "SystemStats",
+      "description": "Global system statistics.",
+      "type": "object",
+      "properties": {
+        "favorites": {
+          "type": "number",
+          "description": "The total number of favorites/clicks."
+        }
+      },
+      "required": ["favorites"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/User"
+      },
+      "description": "Stores user profiles and roles."
+    },
+    "activityLogs/{logId}": {
+      "schema": {
+        "$ref": "#/entities/ActivityLog"
+      },
+      "description": "Stores system activity logs."
+    },
+    "system/stats": {
+      "schema": {
+        "$ref": "#/entities/SystemStats"
+      },
+      "description": "Stores global system statistics like favorites."
+    }
+  }
+}
