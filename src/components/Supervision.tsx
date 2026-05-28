@@ -28,7 +28,8 @@ export default function Supervision() {
   const [error, setError] = useState('');
   
   const [formData, setFormData] = useState({
-    guru: '', nipGuru: '', supervisor: '', nipSupervisor: '', 
+    guru: '', nipGuru: '', jenisNipGuru: 'NIP', 
+    supervisor: '', nipSupervisor: '', jenisNipSupervisor: 'NIP',
     sekolah: '', tanggal: new Date().toISOString().split('T')[0], catatan: ''
   });
 
@@ -267,80 +268,104 @@ export default function Supervision() {
           <script src="https://cdn.tailwindcss.com"></script>
           <style>
               @page {
-                size: A4;
-                margin: 0;
-              }
-              @media print {
-                  body { 
-                    -webkit-print-color-adjust: exact; 
-                    print-color-adjust: exact; 
-                    margin: 0;
-                    padding: 10mm;
-                  }
-                  .no-print { display: none; }
-                  .content-wrapper {
-                    max-width: 100% !important;
-                    padding: 5mm !important;
-                    margin: 0 !important;
-                  }
+                size: A4 portrait;
+                margin: 2.54cm !important;
               }
               body {
-                font-family: 'Inter', sans-serif;
-                background: white;
-                position: relative;
-                min-height: 100vh;
-                margin: 0;
-                padding: 0;
+                font-family: Arial, sans-serif;
+                color: #000;
               }
-              .watermark {
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%) rotate(-45deg);
-                font-size: 5vw;
-                color: rgba(0, 0, 0, 0.05);
-                white-space: nowrap;
-                pointer-events: none;
-                z-index: -1;
-                font-weight: bold;
-                text-transform: uppercase;
+              @media print {
+                
+                html, body {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  overflow-x: hidden !important;
+                }
+                
+                html, body {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  overflow-x: hidden !important;
+                }
+                body { -webkit-print-color-adjust: exact !important; 
+                  print-color-adjust: exact !important; 
+                  padding: 0 !important; 
+                  margin: 0 !important; 
+                  width: 100% !important;
+                  max-width: 100% !important;
+                }
+                .no-print { display: none !important; } 
+
+                /* Advanced Table Printing Resets */
+                table, table * {
+                  white-space: normal !important;
+                }
+                [class*="min-w-"], [class*="w-max"], [class*="whitespace-nowrap"] {
+                  min-width: 0 !important;
+                  white-space: normal !important;
+                }
+                .whitespace-nowrap {
+                  white-space: normal !important;
+                }
+  
+                
+                table {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  table-layout: fixed !important;
+                  page-break-inside: auto !important;
+                  border-collapse: collapse !important;
+
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  table-layout: fixed !important;
+                  page-break-inside: auto !important;
+                  border-collapse: collapse !important;
+
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  min-width: 0 !important;
+                  border-collapse: collapse !important;
+                  table-layout: fixed !important;
+                  page-break-inside: auto !important;
+                }
+                tr {
+                  page-break-inside: avoid !important;
+                  page-break-after: auto !important;
+                }
+                th, td { word-wrap: break-word !important; border: 1px solid #777 !important; padding: 10px !important;
+                  word-break: break-word !important;
+                  overflow-wrap: break-word !important;
+                  white-space: normal !important;
+                }
+                th { width: 25% !important; }
+                
+                /* Reset tailwind's overflow properties which cut off content */
+                .overflow-x-auto, .overflow-y-auto, .overflow-auto {
+                  overflow: visible !important;
+                  min-width: 0 !important;
+                }
+
+                .min-w-\[800px\] {
+                  min-width: 0 !important;
+                }
+                
+                img {
+                  max-width: 100% !important;
+                  height: auto !important;
+                }
+                
+                pre, code, p {
+                  white-space: pre-wrap !important;
+                  word-break: break-word !important;
+                }
               }
-              .content-wrapper {
-                width: 100%;
-                max-width: 210mm;
-                margin: 0 auto;
-                padding: 15mm;
-                box-sizing: border-box;
-              }
-              h1, h2, h3 { text-align: center; }
-              table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-              th, td { border: 1px solid #333; padding: 8px; text-align: left; font-size: 12px; }
-              th { background: #f0f0f0; font-weight: bold; }
-              .header { background: #1e40af; color: white; padding: 20px; text-align: center; margin: -15mm -15mm 20px -15mm; }
-              .score-section { background: #f9f9f9; padding: 15px; margin: 15px 0; }
-              .row { display: flex; margin: 8px 0; font-size: 12px; }
-              .label { width: 35%; font-weight: bold; }
-              .value { width: 65%; }
-              .signatures { display: flex; justify-content: space-between; margin-top: 50px; text-align: center; font-size: 12px; }
-              .signature-box { width: 40%; }
-              .signature-line { margin-top: 60px; border-top: 1px solid #000; padding-top: 5px; font-weight: bold; }
-              .support-footer {
-                margin-top: 40px;
-                padding-top: 20px;
-                border-top: 2px solid #eee;
-                text-align: center;
-                font-size: 11px;
-                color: #666;
-              }
-              .support-links {
-                margin-top: 8px;
-                display: flex;
-                justify-content: center;
-                gap: 15px;
-                font-weight: bold;
-                color: #2563eb;
-              }
-          </style>
+            </style>
       </head>
       <body>
           <div class="watermark">PEMURYADI - MAJU PENDIDIKAN INDONESIA</div>

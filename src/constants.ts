@@ -513,7 +513,41 @@ export const subjectsByLevel: Record<string, { id: string, label: string }[]> = 
   ]
 };
 
+export const anSubjects = [
+  { id: 'literasi-membaca', label: 'Literasi Membaca' },
+  { id: 'numerasi', label: 'Numerasi' },
+  { id: 'survei-karakter', label: 'Survei Karakter' },
+  { id: 'survei-lingkungan-belajar', label: 'Survei Lingkungan Belajar' }
+];
+
+export const olympiadSubjectsByLevel: Record<string, { id: string, label: string }[]> = {
+  sd: [
+    { id: 'ol-matematika', label: 'Matematika' },
+    { id: 'ol-ipa', label: 'IPA' }
+  ],
+  smp: [
+    { id: 'ol-matematika', label: 'Matematika' },
+    { id: 'ol-ipa', label: 'IPA' },
+    { id: 'ol-ips', label: 'IPS' }
+  ],
+  sma: [
+    { id: 'ol-matematika', label: 'Matematika' },
+    { id: 'ol-fisika', label: 'Fisika' },
+    { id: 'ol-kimia', label: 'Kimia' },
+    { id: 'ol-biologi', label: 'Biologi' },
+    { id: 'ol-ekonomi', label: 'Ekonomi' },
+    { id: 'ol-astronomi', label: 'Astronomi' },
+    { id: 'ol-geografi', label: 'Geografi' },
+    { id: 'ol-kebumian', label: 'Kebumian' },
+    { id: 'ol-informatika', label: 'Informatika' }
+  ]
+};
+
 export const mapelDescriptions: Record<string, string> = {
+  'literasi-membaca': 'Mengukur kemampuan memahami, menggunakan, mengevaluasi, dan merefleksikan berbagai jenis teks untuk menyelesaikan masalah.',
+  'numerasi': 'Mengukur kemampuan berpikir menggunakan konsep, prosedur, fakta, dan alat matematika.',
+  'survei-karakter': 'Mengukur sikap, nilai, dan kebiasaan yang mencerminkan profil pelajar Pancasila, seperti beriman, berkebinekaan global, gotong royong, mandiri, bernalar kritis, dan kreatif.',
+  'survei-lingkungan-belajar': 'Mengevaluasi kualitas proses pembelajaran dan iklim sekolah yang menunjang pembelajaran (keamanan, inklusivitas, dan dukungan sekolah).',
   'seni-rupa': 'Fokus pada eksplorasi bentuk, warna, garis, dan tekstur melalui kegiatan menggambar, melukis, seni patung, grafis, desain komunikasi visual, maupun kerajinan tangan (kriya).',
   'seni-musik': 'Mencakup eksplorasi bunyi, vokal, alat musik, dan apresiasi musik, baik tradisional maupun modern.',
   'seni-tari': 'Berfokus pada gerak tubuh yang estetis, ekspresif, dan berirama, yang mencakup tari tradisional maupun kreasi baru.',
@@ -521,6 +555,10 @@ export const mapelDescriptions: Record<string, string> = {
 };
 
 export const topicsBySubject: Record<string, string[]> = {
+  'literasi-membaca': ['Memahami Informasi', 'Mengevaluasi Teks', 'Merefleksikan Isi Teks', 'Teks Narasi', 'Teks Informasi'],
+  'numerasi': ['Bilangan', 'Aljabar', 'Geometri dan Pengukuran', 'Data dan Ketidakpastian'],
+  'survei-karakter': ['Profil Pelajar Pancasila', 'Gotong Royong', 'Mandiri', 'Bernalar Kritis', 'Kreatif'],
+  'survei-lingkungan-belajar': ['Iklim Keamanan Sekolah', 'Inklusivitas', 'Kualitas Pembelajaran'],
   'bahasa-indonesia': ['Teks Deskripsi', 'Teks Narasi', 'Teks Prosedur', 'Teks Laporan Hasil Observasi', 'Teks Eksposisi', 'Teks Anekdot', 'Teks Hikayat', 'Puisi', 'Drama', 'Surat Resmi dan Pribadi', 'Literasi Digital'],
   'matematika': ['Bilangan Bulat dan Pecahan', 'Aljabar', 'Persamaan Linear dan Pertidaksamaan', 'Geometri dan Bangun Ruang', 'Pengukuran', 'Statistika dan Analisis Data', 'Peluang', 'Kalkulus Dasar', 'Trigonometri'],
   'ipas': ['Makhluk Hidup dan Lingkungannya', 'Zat dan Perubahannya', 'Gaya dan Energi', 'Bumi dan Tata Surya', 'Kelistrikan dan Kemagnetan', 'Interaksi Sosial', 'Sejarah Indonesia', 'Geografi Lingkungan'],

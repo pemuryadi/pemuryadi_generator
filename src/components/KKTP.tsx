@@ -194,46 +194,105 @@ Minimal buatkan 3-5 TP yang relevan dengan topik tersebut.`;
       <head>
           <title>KKTP - ${subjectLabel}</title>
           <style>
-              @page { size: portrait; margin: 0; }
-              body { font-family: 'Times New Roman', Times, serif; line-height: 1.4; color: black; position: relative; padding: 1.5cm; }
-              .header-title { text-align: center; font-weight: bold; font-size: 14pt; margin-bottom: 20px; text-transform: uppercase; }
-              .info-table { width: 100%; margin-bottom: 15px; font-size: 11pt; }
-              .info-table td { padding: 2px 0; vertical-align: top; }
-              .info-table td:first-child { width: 180px; }
-              .info-table td:nth-child(2) { width: 15px; }
-              
-              .kktp-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 10pt; }
-              .kktp-table th, .kktp-table td { border: 1px solid black; padding: 5px; }
-              .kktp-table th { text-align: center; vertical-align: middle; background-color: #f3f4f6; }
-              
-              .bg-pink { background-color: #ffccff !important; -webkit-print-color-adjust: exact; }
-              .bg-yellow { background-color: #ffff99 !important; -webkit-print-color-adjust: exact; }
-              .bg-green { background-color: #99ff99 !important; -webkit-print-color-adjust: exact; }
-              .bg-cyan { background-color: #99ffff !important; -webkit-print-color-adjust: exact; }
-              
-              .keterangan-table { width: 90%; margin: 0 auto 30px auto; border-collapse: collapse; font-size: 10pt; }
-              .keterangan-table th, .keterangan-table td { border: 1px solid black; padding: 4px 8px; }
-              .keterangan-table th { text-align: left; width: 120px; background-color: #f3f4f6; }
-              
-              .signature-section { display: flex; justify-content: space-between; margin-top: 40px; font-size: 11pt; }
-              .signature-box { width: 250px; text-align: center; }
-              .signature-space { height: 60px; }
-              .signature-name { font-weight: bold; text-decoration: underline; }
-              
-              .watermark {
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%) rotate(-45deg);
-                font-size: 40pt;
-                color: rgba(0, 0, 0, 0.05);
-                white-space: nowrap;
-                pointer-events: none;
-                z-index: -1;
-                font-weight: bold;
-                text-transform: uppercase;
+              @page {
+                size: A4 portrait;
+                margin: 2.54cm !important;
               }
-          </style>
+              body {
+                font-family: Arial, sans-serif;
+                color: #000;
+              }
+              @media print {
+                
+                html, body {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  overflow-x: hidden !important;
+                }
+                
+                html, body {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  overflow-x: hidden !important;
+                }
+                body { -webkit-print-color-adjust: exact !important; 
+                  print-color-adjust: exact !important; 
+                  padding: 0 !important; 
+                  margin: 0 !important; 
+                  width: 100% !important;
+                  max-width: 100% !important;
+                }
+                .no-print { display: none !important; } 
+
+                /* Advanced Table Printing Resets */
+                table, table * {
+                  white-space: normal !important;
+                }
+                [class*="min-w-"], [class*="w-max"], [class*="whitespace-nowrap"] {
+                  min-width: 0 !important;
+                  white-space: normal !important;
+                }
+                .whitespace-nowrap {
+                  white-space: normal !important;
+                }
+  
+                
+                table {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  table-layout: fixed !important;
+                  page-break-inside: auto !important;
+                  border-collapse: collapse !important;
+
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  table-layout: fixed !important;
+                  page-break-inside: auto !important;
+                  border-collapse: collapse !important;
+
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  min-width: 0 !important;
+                  border-collapse: collapse !important;
+                  table-layout: fixed !important;
+                  page-break-inside: auto !important;
+                }
+                tr {
+                  page-break-inside: avoid !important;
+                  page-break-after: auto !important;
+                }
+                th, td { word-wrap: break-word !important; border: 1px solid #777 !important; padding: 10px !important;
+                  word-break: break-word !important;
+                  overflow-wrap: break-word !important;
+                  white-space: normal !important;
+                }
+                th { width: 25% !important; }
+                
+                /* Reset tailwind's overflow properties which cut off content */
+                .overflow-x-auto, .overflow-y-auto, .overflow-auto {
+                  overflow: visible !important;
+                  min-width: 0 !important;
+                }
+
+                .min-w-\[800px\] {
+                  min-width: 0 !important;
+                }
+                
+                img {
+                  max-width: 100% !important;
+                  height: auto !important;
+                }
+                
+                pre, code, p {
+                  white-space: pre-wrap !important;
+                  word-break: break-word !important;
+                }
+              }
+            </style>
       </head>
       <body>
           <div class="watermark">PEMURYADI - MAJU PENDIDIKAN INDONESIA</div>

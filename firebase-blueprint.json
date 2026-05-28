@@ -2,7 +2,7 @@
   "entities": {
     "User": {
       "title": "User",
-      "description": "User profile and role information.",
+      "description": "User profile and role/tier information.",
       "type": "object",
       "properties": {
         "uid": {
@@ -24,8 +24,21 @@
         },
         "role": {
           "type": "string",
-          "enum": ["owner", "premium", "guest"],
+          "enum": ["owner", "premium", "guest", "titan", "supreme", "ultimate", "essential"],
           "description": "The user's role."
+        },
+        "tier": {
+          "type": "string",
+          "enum": ["Free", "Essential", "Premium", "Ultimate", "SUPREME", "Titan", "owner"],
+          "description": "The user's subscription tier."
+        },
+        "tokens": {
+          "type": "number",
+          "description": "Remaining AI generate tokens."
+        },
+        "lastResetDate": {
+          "type": "string",
+          "description": "Last token reset date (YYYY-MM-DD)."
         },
         "createdAt": {
           "type": "string",

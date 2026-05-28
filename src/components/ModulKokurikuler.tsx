@@ -106,19 +106,60 @@ export default function ModulKokurikuler() {
   const [teknikSumatif, setTeknikSumatif] = useState('');
   const [isCustomSumatif, setIsCustomSumatif] = useState(false);
 
+  const [alokasiWaktu, setAlokasiWaktu] = useState('');
+  const [isAdiwiyata, setIsAdiwiyata] = useState(false);
+  const [isSRA, setIsSRA] = useState(false);
+
   const [isGenerating, setIsGenerating] = useState(false);
 
   React.useEffect(() => {
     const saved = localStorage.getItem('ModulKokurikulerData');
     if (saved) {
       try {
-        setFormData(JSON.parse(saved));
+        const data = JSON.parse(saved);
+        if (data.tema) setTema(data.tema);
+        if (data.praktik) setPraktik(data.praktik);
+        if (data.lingkungan) setLingkungan(data.lingkungan);
+        if (data.namaGuru) setNamaGuru(data.namaGuru);
+        if (data.jenisNipGuru) setJenisNipGuru(data.jenisNipGuru);
+        if (data.nipGuru) setNipGuru(data.nipGuru);
+        if (data.namaSekolah) setNamaSekolah(data.namaSekolah);
+        if (data.jenisSekolah) setJenisSekolah(data.jenisSekolah);
+        if (data.kepalaSekolah) setKepalaSekolah(data.kepalaSekolah);
+        if (data.jenisNipKepalaSekolah) setJenisNipKepalaSekolah(data.jenisNipKepalaSekolah);
+        if (data.nipKepalaSekolah) setNipKepalaSekolah(data.nipKepalaSekolah);
+        if (data.eduLevel) setEduLevel(data.eduLevel);
+        if (data.fase) setFase(data.fase);
+        if (data.kelas) setKelas(data.kelas);
+        if (data.tahunAjaran) setTahunAjaran(data.tahunAjaran);
+        if (data.mapel) setMapel(data.mapel);
+        if (data.topikMateri) setTopikMateri(data.topikMateri);
+        if (data.isCustomTopik !== undefined) setIsCustomTopik(data.isCustomTopik);
+        if (data.tingkatanKognitif) setTingkatanKognitif(data.tingkatanKognitif);
+        if (data.dimensiProfil) setDimensiProfil(data.dimensiProfil);
+        if (data.subtema) setSubtema(data.subtema);
+        if (data.isCustomSubtema !== undefined) setIsCustomSubtema(data.isCustomSubtema);
+        if (data.pemanfaatanDigital) setPemanfaatanDigital(data.pemanfaatanDigital);
+        if (data.gerakan7Kaih) setGerakan7Kaih(data.gerakan7Kaih);
+        if (data.kemitraan) setKemitraan(data.kemitraan);
+        if (data.activeAsesmenTab) setActiveAsesmenTab(data.activeAsesmenTab);
+        if (data.teknikFormatif) setTeknikFormatif(data.teknikFormatif);
+        if (data.teknikSumatif) setTeknikSumatif(data.teknikSumatif);
+        if (data.isCustomSumatif !== undefined) setIsCustomSumatif(data.isCustomSumatif);
       } catch (e) {}
     }
   }, []);
 
   const saveProgress = () => {
-    localStorage.setItem('ModulKokurikulerData', JSON.stringify(formData));
+    const dataToSave = {
+      tema, praktik, lingkungan, namaGuru, jenisNipGuru, nipGuru, namaSekolah,
+      jenisSekolah, kepalaSekolah, jenisNipKepalaSekolah, nipKepalaSekolah,
+      eduLevel, fase, kelas, tahunAjaran, mapel, topikMateri, isCustomTopik,
+      tingkatanKognitif, dimensiProfil, subtema, isCustomSubtema,
+      pemanfaatanDigital, gerakan7Kaih, kemitraan, activeAsesmenTab,
+      teknikFormatif, teknikSumatif, isCustomSumatif
+    };
+    localStorage.setItem('ModulKokurikulerData', JSON.stringify(dataToSave));
     alert('Progress berhasil disimpan!');
   };
 
@@ -242,6 +283,12 @@ Konteks Kurikulum Merdeka & Pedagogi (SANGAT PENTING):
    - PENTING: JANGAN tampilkan label "C1", "C2", dll. secara eksplisit pada hasil akhir, cukup terapkan dalam kata kerja operasional dan aktivitas.
 2. Tujuan Pembelajaran: Rumuskan tujuan pembelajaran secara otomatis berdasarkan pilihan pengunjung. JANGAN mencantumkan label (ABCD) pada hasil akhir.
 
+PENTING UNTUK ALOKASI WAKTU: Pada bagian "E. RANGKAIAN KEGIATAN", pastikan alokasi waktu dan jumlah pertemuan yang dihasilkan merespon jumlah pertemuan yang diisi (${alokasiWaktu}). Jika lebih dari 1 pertemuan, pastikan "Pertemuan 1", "Pertemuan 2", dst. selalu diawali dengan baris baru (newline) agar setiap pertemuan tersusun rapi ke bawah dan terbaca jelas. Gunakan bahasa Indonesia yang baik, baku, jelas, dan pastikan TIDAK ADA TYPO (salah ketik).
+
+${isAdiwiyata ? `INSTRUMEN ADIWIYATA TERINTEGRASI: Sertakan penjabaran integrasi pendidikan lingkungan hidup (Adiwiyata) di dalam alur atau kegiatan, yang mencakup: a) Pembelajaran intrakurikuler; b) Kegiatan ekstrakurikuler; c) Kegiatan kokurikuler; d) Pengelolaan sarana dan prasarana ramah lingkungan; e) Gerakan perilaku ramah lingkungan di sekolah. Pastikan workflow pembelajaran ini jelas dan berkesinambungan dengan program Adiwiyata.` : ''}
+
+${isSRA ? `SEKOLAH RAMAH ANAK (SRA): Sertakan pendekatan yang inklusif, aman, nyaman, dan berpusat pada siswa. Pastikan bahasa yang digunakan mempromosikan partisipasi aktif anak dan menghargai keberagaman.` : ''}
+
 Struktur Modul Kokurikuler 2025 harus mencakup bagian-bagian berikut secara berurutan:
 A. IDENTITAS (Nama Satuan Pendidikan, Jenjang, Kelas/Fase, Semester, Tahun Ajaran, Bentuk Kokurikuler, Tema Kegiatan, Alokasi Waktu, Mata Pelajaran Terintegrasi, Lokasi Kegiatan)
 B. ANALISIS SATUAN PENDIDIKAN (Kebutuhan Belajar Murid, Sumber Daya yang Dimiliki, Kondisi Kontekstual & Sosial, Rasional Pemilihan Dimensi Profil Lulusan)
@@ -255,6 +302,8 @@ I. PEMANFAATAN TEKNOLOGI DIGITAL
 J. ASESMEN (Jenis Asesmen Formatif, Contoh Format Anekdotal, Contoh Format Jurnal Harian, Jenis Asesmen Sumatif, Pelaporan Rapor)
 K. LKPD JURNAL HARIAN & INSTRUMEN REFLEKSI (Lembar Kerja Peserta Didik, Jurnal Harian, Target Kebiasaan, Refleksi Mingguan, Lembar Rencana Aksi, Lembar Sesi Bercerita, Lembar Catatan Outbond, Refleksi Akhir Semester, Kesepakatan Aksi Nyata)
 L. INSTRUMEN REFLEKSI GURU (Refleksi Umum Kegiatan, Refleksi Berdasarkan Prinsip Pembelajaran, Refleksi Perkembangan Dimensi Profil Lulusan, Evaluasi Kelengkapan Jurnal Harian, Rekomendasi untuk Semester Mendatang)
+
+INSTRUMEN ADIWIYATA TERINTEGRASI: Sertakan penjabaran integrasi pendidikan lingkungan hidup (Adiwiyata) di dalam alur atau kegiatan, yang mencakup: a) Pembelajaran intrakurikuler; b) Kegiatan ekstrakurikuler; c) Kegiatan kokurikuler; d) Pengelolaan sarana dan prasarana ramah lingkungan; e) Gerakan perilaku ramah lingkungan di sekolah. Pastikan workflow pembelajaran ini jelas dan berkesinambungan dengan program Adiwiyata.
 
 Gunakan format Markdown yang rapi dan profesional. Buat tabel menggunakan sintaks Markdown.`;
 
@@ -286,77 +335,104 @@ Gunakan format Markdown yang rapi dan profesional. Buat tabel menggunakan sintak
           <script src="https://cdn.tailwindcss.com"></script>
           <style>
               @page {
-                size: A4;
-                margin: 0;
-              }
-              @media print {
-                  body { 
-                    -webkit-print-color-adjust: exact; 
-                    print-color-adjust: exact; 
-                    margin: 0;
-                    padding: 10mm;
-                  }
-                  .no-print { display: none; }
-                  .content-wrapper {
-                    max-width: 100% !important;
-                    padding: 5mm !important;
-                    margin: 0 !important;
-                  }
+                size: A4 portrait;
+                margin: 2.54cm !important;
               }
               body {
-                font-family: 'Inter', sans-serif;
-                background: white;
-                position: relative;
-                min-height: 100vh;
-                margin: 0;
-                padding: 0;
+                font-family: Arial, sans-serif;
+                color: #000;
               }
-              .watermark {
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%) rotate(-45deg);
-                font-size: 5vw;
-                color: rgba(0, 0, 0, 0.05);
-                white-space: nowrap;
-                pointer-events: none;
-                z-index: -1;
-                font-weight: bold;
-                text-transform: uppercase;
+              @media print {
+                
+                html, body {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  overflow-x: hidden !important;
+                }
+                
+                html, body {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  overflow-x: hidden !important;
+                }
+                body { -webkit-print-color-adjust: exact !important; 
+                  print-color-adjust: exact !important; 
+                  padding: 0 !important; 
+                  margin: 0 !important; 
+                  width: 100% !important;
+                  max-width: 100% !important;
+                }
+                .no-print { display: none !important; } 
+
+                /* Advanced Table Printing Resets */
+                table, table * {
+                  white-space: normal !important;
+                }
+                [class*="min-w-"], [class*="w-max"], [class*="whitespace-nowrap"] {
+                  min-width: 0 !important;
+                  white-space: normal !important;
+                }
+                .whitespace-nowrap {
+                  white-space: normal !important;
+                }
+  
+                
+                table {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  table-layout: fixed !important;
+                  page-break-inside: auto !important;
+                  border-collapse: collapse !important;
+
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  table-layout: fixed !important;
+                  page-break-inside: auto !important;
+                  border-collapse: collapse !important;
+
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  min-width: 0 !important;
+                  border-collapse: collapse !important;
+                  table-layout: fixed !important;
+                  page-break-inside: auto !important;
+                }
+                tr {
+                  page-break-inside: avoid !important;
+                  page-break-after: auto !important;
+                }
+                th, td { word-wrap: break-word !important; border: 1px solid #777 !important; padding: 10px !important;
+                  word-break: break-word !important;
+                  overflow-wrap: break-word !important;
+                  white-space: normal !important;
+                }
+                th { width: 25% !important; }
+                
+                /* Reset tailwind's overflow properties which cut off content */
+                .overflow-x-auto, .overflow-y-auto, .overflow-auto {
+                  overflow: visible !important;
+                  min-width: 0 !important;
+                }
+
+                .min-w-\[800px\] {
+                  min-width: 0 !important;
+                }
+                
+                img {
+                  max-width: 100% !important;
+                  height: auto !important;
+                }
+                
+                pre, code, p {
+                  white-space: pre-wrap !important;
+                  word-break: break-word !important;
+                }
               }
-              .content-wrapper {
-                width: 100%;
-                max-width: 210mm;
-                margin: 0 auto;
-                padding: 15mm;
-                box-sizing: border-box;
-              }
-              .markdown-body h1 { font-size: 24px; font-weight: bold; margin-bottom: 16px; color: #1e40af; border-bottom: 2px solid #1e40af; padding-bottom: 8px; text-align: center; }
-              .markdown-body h2 { font-size: 20px; font-weight: bold; margin-top: 24px; margin-bottom: 12px; color: #1e40af; background: #eff6ff; padding: 8px; border-radius: 4px; }
-              .markdown-body h3 { font-size: 18px; font-weight: bold; margin-top: 16px; margin-bottom: 8px; color: #1e3a8a; }
-              .markdown-body p { margin-bottom: 12px; line-height: 1.6; }
-              .markdown-body ul, .markdown-body ol { margin-bottom: 16px; padding-left: 24px; }
-              .markdown-body li { margin-bottom: 4px; }
-              .markdown-body table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
-              .markdown-body th, .markdown-body td { border: 1px solid #cbd5e1; padding: 8px; text-align: left; }
-              .markdown-body th { background: #f1f5f9; }
-              .support-footer {
-                margin-top: 40px;
-                padding-top: 20px;
-                border-top: 2px solid #eee;
-                text-align: center;
-                font-size: 11px;
-                color: #666;
-              }
-              .support-links {
-                margin-top: 8px;
-                display: center;
-                justify-content: center;
-                gap: 15px;
-                font-weight: bold;
-                color: #2563eb;
-              }
-          </style>
+            </style>
       </head>
       <body>
           <div class="watermark">PEMURYADI - MAJU PENDIDIKAN INDONESIA</div>
@@ -745,6 +821,46 @@ Gunakan format Markdown yang rapi dan profesional. Buat tabel menggunakan sintak
                   <option value="Daring (Online)">Daring (Online)</option>
                   <option value="Campuran (Blended)">Campuran (Blended)</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Alokasi Waktu / Jumlah Pertemuan</label>
+                <input 
+                  type="number"
+                  min="1"
+                  value={alokasiWaktu} 
+                  onChange={e => setAlokasiWaktu(e.target.value)} 
+                  placeholder="Contoh: 4"
+                  className="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 transition-all" 
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-700 hover:border-blue-500/50 cursor-pointer bg-slate-800">
+                  <input
+                    type="checkbox"
+                    checked={isAdiwiyata}
+                    onChange={(e) => setIsAdiwiyata(e.target.checked)}
+                    className="w-5 h-5 rounded border-slate-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900 bg-slate-900"
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-white">Integrasi Adiwiyata</p>
+                    <p className="text-[10px] text-slate-400">Pendidikan Lingkungan Hidup</p>
+                  </div>
+                </label>
+                
+                <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-700 hover:border-blue-500/50 cursor-pointer bg-slate-800">
+                  <input
+                    type="checkbox"
+                    checked={isSRA}
+                    onChange={(e) => setIsSRA(e.target.checked)}
+                    className="w-5 h-5 rounded border-slate-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900 bg-slate-900"
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-white">Sekolah Ramah Anak</p>
+                    <p className="text-[10px] text-slate-400">Pendekatan inklusif & aman</p>
+                  </div>
+                </label>
               </div>
 
               {/* Kemitraan Pembelajaran */}

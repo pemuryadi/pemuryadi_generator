@@ -6,6 +6,7 @@ import AIVisualGenerator from './AIVisualGenerator';
 import PDFRemixUpload from './PDFRemixUpload';
 import { useAuth } from '../AuthContext';
 import { getWatermarkHtml } from '../utils/print';
+import { Save } from 'lucide-react';
 
 export default function ModuleGenerator() {
   const { profile } = useAuth();
@@ -29,8 +30,9 @@ export default function ModuleGenerator() {
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({
     namaGuru: '', jenisNipGuru: 'NIP', nip: '', namaSekolah: '', jenisSekolah: 'Negeri', kepalaSekolah: '', jenisNipKepalaSekolah: 'NIP', nipKepalaSekolah: '', jenjang: 'sd', kelas: '1', fase: 'A',
-    semester: '1', tahunAjaran: '2024/2025', mapel: 'bahasa-indonesia', topik: '', isCustomTopik: false, waktu: '', model: 'pbl', mediaStyle: 'outline', tingkatanKognitif: 'Campuran (Sesuai Kurikulum Merdeka)',
-    remixText: '', hasInklusi: false, jumlahInklusi: ''
+    semester: '1', tahunAjaran: '2024/2025', mapel: 'bahasa-indonesia', topik: '', isCustomTopik: false, waktu: '1', model: 'pbl', mediaStyle: 'outline', tingkatanKognitif: 'Campuran (Sesuai Kurikulum Merdeka)',
+    remixText: '', hasInklusi: false, jumlahInklusi: '',
+    isAdiwiyata: false, isSRA: false
   });
 
   const [custom, setCustom] = useState({
@@ -152,7 +154,13 @@ Konteks Kurikulum Merdeka & Pedagogi (SANGAT PENTING):
    - TPACK (Technological Pedagogical Content Knowledge): Tunjukkan bagaimana guru menggunakan teknologi dan pedagogi yang tepat untuk menyampaikan konten materi.
    - STEAM (Science, Technology, Engineering, Art, Mathematics): Integrasikan elemen STEAM dalam aktivitas siswa untuk melatih berpikir kritis, kreatif, dan pemecahan masalah.
 
-Berikan hasil dalam format JSON dengan struktur berikut. Pastikan semua bagian terisi secara otomatis dan komprehensif. Gunakan sumber resmi dari Kementerian Pendidikan, Kebudayaan, Riset, dan Teknologi (Kemendikbudristek) atau website pendidikan yang kredibel sebagai acuan pengisian konten:
+PENTING UNTUK ALOKASI WAKTU: Pastikan pada bagian "kegiatanPembelajaran.inti" merespon jumlah pertemuan yang diisi (${formData.waktu}). Jika jumlah pertemuan > 1, pastikan "Pertemuan 1", "Pertemuan 2", dst. selalu diawali dengan baris baru (newline / \n\n) agar setiap pertemuan tersusun rapi ke bawah (bukan melanjutkan teks di baris yang sama). Gunakan bahasa Indonesia yang baik, baku, jelas, dan pastikan TIDAK ADA TYPO (salah ketik).
+
+${formData.isAdiwiyata ? `INSTRUMEN ADIWIYATA TERINTEGRASI: Sertakan penjabaran integrasi pendidikan lingkungan hidup (Adiwiyata) di dalam alur atau kegiatan, yang mencakup: a) Pembelajaran intrakurikuler; b) Kegiatan ekstrakurikuler; c) Kegiatan kokurikuler; d) Pengelolaan sarana dan prasarana ramah lingkungan; e) Gerakan perilaku ramah lingkungan di sekolah. Pastikan workflow pembelajaran ini jelas dan berkesinambungan dengan program Adiwiyata.` : ''}
+
+${formData.isSRA ? `SEKOLAH RAMAH ANAK (SRA): Sertakan pendekatan yang inklusif, aman, nyaman, dan berpusat pada siswa. Pastikan bahasa yang digunakan mempromosikan partisipasi aktif anak dan menghargai keberagaman.` : ''}
+
+Berikan hasil dalam format JSON dengan struktur berikut. Pastikan semua bagian terisi secara otomatis dan komprehensif. Gunakan sumber resmi dari Kementerian Pendidikan, Kebudayaan, Riset, dan Teknologi (Kemendikbudristek) atau referensi pendidikan yang kredibel sebagai acuan pengisian konten:
 {
   "capaianPembelajaran": "Capaian pembelajaran sesuai fase",
   "tujuanPembelajaran": ["Tujuan 1", "Tujuan 2", "Tujuan 3"],
@@ -167,7 +175,12 @@ Berikan hasil dalam format JSON dengan struktur berikut. Pastikan semua bagian t
   "rubrikItems": [
     { "aspek": "Aspek penilaian", "score": "Skor maksimal", "deskripsi": "Deskripsi rubrik" }
   ],
-  "sumberBelajar": ["Sumber 1", "Sumber 2"]
+  "sumberBelajar": ["Sumber 1", "Sumber 2"],
+  "lkpd": "Tugas LKPD yang terstruktur (berisi Lembar Kerja Peserta Didik, urutan perintah/pertanyaan) sesuai urutan materi",
+  "glosarium": [
+    { "istilah": "Kata 1", "definisi": "Makna 1" }
+  ],
+  "daftarPustaka": ["Sumber referensi pustaka/Buku/Modul 1 beserta URL jika ada", "Sumber referensi 2"]
 }`;
 
       const response = await ai.models.generateContent({
@@ -206,9 +219,22 @@ Berikan hasil dalam format JSON dengan struktur berikut. Pastikan semua bagian t
                   required: ["aspek", "score", "deskripsi"]
                 }
               },
-              sumberBelajar: { type: Type.ARRAY, items: { type: Type.STRING } }
+              sumberBelajar: { type: Type.ARRAY, items: { type: Type.STRING } },
+              lkpd: { type: Type.STRING },
+              glosarium: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    istilah: { type: Type.STRING },
+                    definisi: { type: Type.STRING }
+                  },
+                  required: ["istilah", "definisi"]
+                }
+              },
+              daftarPustaka: { type: Type.ARRAY, items: { type: Type.STRING } }
             },
-            required: ["capaianPembelajaran", "tujuanPembelajaran", "profilPelajar", "kegiatanPembelajaran", "ringkasanMateri", "contohNyata", "rubrikItems", "sumberBelajar"]
+            required: ["capaianPembelajaran", "tujuanPembelajaran", "profilPelajar", "kegiatanPembelajaran", "ringkasanMateri", "contohNyata", "rubrikItems", "sumberBelajar", "lkpd", "glosarium", "daftarPustaka"]
           }
         }
       });
@@ -250,79 +276,202 @@ Berikan hasil dalam format JSON dengan struktur berikut. Pastikan semua bagian t
           <script src="https://cdn.tailwindcss.com"></script>
           <style>
               @page {
-                size: A4;
-                margin: 0;
-              }
-              @media print {
-                  body { 
-                    -webkit-print-color-adjust: exact; 
-                    print-color-adjust: exact; 
-                    margin: 0;
-                    padding: 10mm;
-                  }
-                  .no-print { display: none; }
-                  .content-wrapper {
-                    max-width: 100% !important;
-                    padding: 5mm !important;
-                    margin: 0 !important;
-                  }
+                size: A4 portrait;
+                margin: 2.54cm !important;
               }
               body {
-                font-family: 'Inter', sans-serif;
-                background: white;
-                position: relative;
-                min-height: 100vh;
-                margin: 0;
-                padding: 0;
+                font-family: Arial, sans-serif;
+                color: #000;
+              }
+              @media print {
+                
+                html, body {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  overflow-x: hidden !important;
+                }
+                
+                html, body {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  overflow-x: hidden !important;
+                }
+                body { -webkit-print-color-adjust: exact !important; 
+                  print-color-adjust: exact !important; 
+                  padding: 0 !important; 
+                  margin: 0 !important; 
+                  width: 100% !important;
+                  max-width: 100% !important;
+                }
+                .no-print { display: none !important; } 
+
+                /* Advanced Table Printing Resets */
+                table, table * {
+                  white-space: normal !important;
+                }
+                [class*="min-w-"], [class*="w-max"], [class*="whitespace-nowrap"] {
+                  min-width: 0 !important;
+                  white-space: normal !important;
+                }
+                .whitespace-nowrap {
+                  white-space: normal !important;
+                }
+  
+                
+                table {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  table-layout: fixed !important;
+                  page-break-inside: auto !important;
+                  border-collapse: collapse !important;
+
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  table-layout: fixed !important;
+                  page-break-inside: auto !important;
+                  border-collapse: collapse !important;
+
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  min-width: 0 !important;
+                  border-collapse: collapse !important;
+                  table-layout: fixed !important;
+                  page-break-inside: auto !important;
+                }
+                tr {
+                  page-break-inside: avoid !important;
+                  page-break-after: auto !important;
+                }
+                th, td { word-wrap: break-word !important; border: 1px solid #777 !important; padding: 10px !important;
+                  word-break: break-word !important;
+                  overflow-wrap: break-word !important;
+                  white-space: normal !important;
+                }
+                th { width: 25% !important; }
+                
+                /* Reset tailwind's overflow properties which cut off content */
+                .overflow-x-auto, .overflow-y-auto, .overflow-auto {
+                  overflow: visible !important;
+                  min-width: 0 !important;
+                }
+
+                .min-w-\[800px\] {
+                  min-width: 0 !important;
+                }
+                
+                img {
+                  max-width: 100% !important;
+                  height: auto !important;
+                }
+                
+                pre, code, p {
+                  white-space: pre-wrap !important;
+                  word-break: break-word !important;
+                }
+              }
+
+              /* General Styles */
+              body {
                 line-height: 1.5;
-                color: #333;
               }
               .watermark {
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%) rotate(-45deg);
-                font-size: 5vw;
-                color: rgba(0, 0, 0, 0.05);
-                white-space: nowrap;
-                pointer-events: none;
-                z-index: -1;
-                font-weight: bold;
-                text-transform: uppercase;
+                font-size: 10px;
+                color: #999;
+                text-align: right;
+                margin-bottom: 10px;
               }
               .content-wrapper {
-                width: 100%;
-                max-width: 210mm;
-                margin: 0 auto;
-                padding: 15mm;
-                box-sizing: border-box;
+                max-width: 100%;
               }
-              h1, h2, h3 { text-align: center; color: #1e40af; }
-              table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-              th, td { border: 1px solid #333; padding: 8px; text-align: left; font-size: 12px; }
-              th { background: #1e40af; color: white; font-weight: bold; }
-              .header { background: #1e40af; color: white; padding: 20px; text-align: center; margin: -15mm -15mm 20px -15mm; }
-              .section { margin: 15px 0; }
-              .section-title { background: #e8f0fe; font-weight: bold; padding: 8px; margin: 10px 0; border-left: 5px solid #1e40af; font-size: 14px; }
-              .sub-section-title { font-weight: bold; margin-top: 8px; font-size: 13px; color: #1e40af; }
-              .content { margin-left: 10px; font-size: 12px; }
+              .header {
+                text-align: center;
+                border-bottom: 2px solid #000;
+                padding-bottom: 15px;
+                margin-bottom: 20px;
+              }
+              .header h1 {
+                margin: 0;
+                font-size: 24px;
+                font-weight: bold;
+              }
+              .section {
+                margin-bottom: 25px;
+              }
+              .section-title {
+                font-size: 16px;
+                font-weight: bold;
+                background-color: #f3f4f6;
+                padding: 8px 12px;
+                border-left: 4px solid #0ea5e9;
+                margin-bottom: 15px;
+              }
+              .content {
+                padding-left: 10px;
+              }
+              .sub-section-title {
+                font-size: 14px;
+                font-weight: bold;
+                margin-top: 15px;
+                margin-bottom: 8px;
+              }
+              table {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  table-layout: fixed !important;
+                  page-break-inside: auto !important;
+                  border-collapse: collapse !important;
+
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  table-layout: fixed !important;
+                  page-break-inside: auto !important;
+                  border-collapse: collapse !important;
+
+                width: 100%;
+                border-collapse: collapse;
+                margin: 10px 0;
+              }
+              th, td { word-wrap: break-word !important; border: 1px solid #777 !important; padding: 10px !important;
+                border: 1px solid #d1d5db;
+                padding: 8px;
+                vertical-align: top;
+                font-size: 13px;
+              }
+              th {
+                background-color: #f9fafb;
+                font-weight: bold;
+                text-align: left;
+              }
+              ul, ol {
+                margin: 0 0 10px 0;
+                padding-left: 20px;
+                font-size: 13px;
+              }
+              p {
+                margin: 0 0 10px 0;
+                font-size: 13px;
+              }
               .support-footer {
-                margin-top: 40px;
+                margin-top: 30px;
+                border-top: 1px solid #ccc;
                 padding-top: 20px;
-                border-top: 2px solid #eee;
                 text-align: center;
                 font-size: 11px;
                 color: #666;
+                page-break-inside: avoid;
               }
               .support-links {
-                margin-top: 8px;
-                display: flex;
-                justify-content: center;
-                gap: 15px;
+                margin-top: 5px;
                 font-weight: bold;
-                color: #2563eb;
               }
-          </style>
+              .support-links span {
+                margin: 0 10px;
+              }
+            </style>
       </head>
       <body>
           <div class="watermark">PEMURYADI - MAJU PENDIDIKAN INDONESIA</div>
@@ -382,11 +531,11 @@ Berikan hasil dalam format JSON dengan struktur berikut. Pastikan semua bagian t
                       <div class="sub-section-title">D. Kegiatan Pembelajaran</div>
                       <div style="margin-top: 10px;">
                         <p><strong>Kegiatan Pendahuluan:</strong></p>
-                        <p style="text-align: justify; margin-bottom: 10px;">${result.kegiatanPembelajaran?.pembuka || '-'}</p>
+                        <p style="text-align: justify; margin-bottom: 10px; white-space: pre-wrap;">${result.kegiatanPembelajaran?.pembuka || '-'}</p>
                         <p><strong>Kegiatan Inti:</strong></p>
-                        <p style="text-align: justify; margin-bottom: 10px;">${result.kegiatanPembelajaran?.inti || '-'}</p>
+                        <p style="text-align: justify; margin-bottom: 10px; white-space: pre-wrap;">${result.kegiatanPembelajaran?.inti || '-'}</p>
                         <p><strong>Kegiatan Penutup:</strong></p>
-                        <p style="text-align: justify;">${result.kegiatanPembelajaran?.penutup || '-'}</p>
+                        <p style="text-align: justify; white-space: pre-wrap;">${result.kegiatanPembelajaran?.penutup || '-'}</p>
                       </div>
 
                       <div class="sub-section-title">E. Asesmen</div>
@@ -408,10 +557,16 @@ Berikan hasil dalam format JSON dengan struktur berikut. Pastikan semua bagian t
                       <p style="text-align: justify; font-style: italic; color: #1e40af;">${result.contohNyata?.replace(/\n/g, '<br>') || '-'}</p>
 
                       <div class="sub-section-title">C. Lembar Kerja Peserta Didik (LKPD)</div>
-                      <p><em>(Terlampir secara terpisah)</em></p>
+                      <p style="text-align: justify; white-space: pre-wrap;">${result.lkpd?.replace(/\n/g, '<br>') || '-'}</p>
 
-                      <div class="sub-section-title">D. Daftar Pustaka</div>
-                      <p>Buku Panduan Guru dan Siswa Kurikulum Merdeka, PMM, dan sumber relevan lainnya.</p>
+                      <div class="sub-section-title">D. Bahan Bacaan Guru & Peserta Didik</div>
+                      <ul style="margin: 5px 0; padding-left: 20px;">${result.sumberBelajar?.map((sb: string) => `<li>${sb}</li>`).join('') || ''}</ul>
+
+                      <div class="sub-section-title">E. Glosarium</div>
+                      <ul style="margin: 5px 0; padding-left: 20px;">${result.glosarium?.map((g: any) => `<li><strong>${g.istilah}</strong>: ${g.definisi}</li>`).join('') || '-'}</ul>
+
+                      <div class="sub-section-title">F. Daftar Pustaka</div>
+                      <ul style="margin: 5px 0; padding-left: 20px;">${result.daftarPustaka?.map((dp: string) => `<li>${dp}</li>`).join('') || '-'}</ul>
                   </div>
               </div>
 
@@ -577,6 +732,46 @@ Berikan hasil dalam format JSON dengan struktur berikut. Pastikan semua bagian t
                 className="w-full bg-slate-800/50 border border-slate-600 rounded-xl p-3 text-white focus:border-cyan-500 transition-all mt-3" 
               />
             )}
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Alokasi Waktu / Jumlah Pertemuan</label>
+            <input 
+              type="number"
+              min="1"
+              value={formData.waktu} 
+              onChange={e => setFormData({...formData, waktu: e.target.value})} 
+              placeholder="Contoh: 4"
+              className="w-full bg-slate-800/50 border border-slate-600 rounded-xl p-3 text-white focus:border-cyan-500 transition-all" 
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-700 hover:border-cyan-500/50 cursor-pointer bg-slate-800">
+              <input
+                type="checkbox"
+                checked={formData.isAdiwiyata}
+                onChange={(e) => setFormData({...formData, isAdiwiyata: e.target.checked})}
+                className="w-5 h-5 rounded border-slate-600 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-slate-900 bg-slate-900"
+              />
+              <div>
+                <p className="text-sm font-medium text-white">Integrasi Adiwiyata</p>
+                <p className="text-[10px] text-slate-400">Pendidikan Lingkungan Hidup</p>
+              </div>
+            </label>
+            
+            <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-700 hover:border-cyan-500/50 cursor-pointer bg-slate-800">
+              <input
+                type="checkbox"
+                checked={formData.isSRA}
+                onChange={(e) => setFormData({...formData, isSRA: e.target.checked})}
+                className="w-5 h-5 rounded border-slate-600 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-slate-900 bg-slate-900"
+              />
+              <div>
+                <p className="text-sm font-medium text-white">Sekolah Ramah Anak</p>
+                <p className="text-[10px] text-slate-400">Pendekatan inklusif & aman</p>
+              </div>
+            </label>
           </div>
           
           <div>
@@ -784,9 +979,9 @@ Berikan hasil dalam format JSON dengan struktur berikut. Pastikan semua bagian t
                   <div>
                     <h5 className="text-sm font-semibold text-slate-300 mb-2">D. Kegiatan Pembelajaran</h5>
                     <div className="space-y-2 text-sm text-slate-300">
-                      <p><strong>Kegiatan Pendahuluan:</strong> {result.kegiatanPembelajaran?.pembuka || '-'}</p>
-                      <p><strong>Kegiatan Inti:</strong> {result.kegiatanPembelajaran?.inti || '-'}</p>
-                      <p><strong>Kegiatan Penutup:</strong> {result.kegiatanPembelajaran?.penutup || '-'}</p>
+                      <p className="whitespace-pre-wrap"><strong>Kegiatan Pendahuluan:</strong> {result.kegiatanPembelajaran?.pembuka || '-'}</p>
+                      <p className="whitespace-pre-wrap"><strong>Kegiatan Inti:</strong> {result.kegiatanPembelajaran?.inti || '-'}</p>
+                      <p className="whitespace-pre-wrap"><strong>Kegiatan Penutup:</strong> {result.kegiatanPembelajaran?.penutup || '-'}</p>
                     </div>
                   </div>
                   <div>
@@ -818,19 +1013,25 @@ Berikan hasil dalam format JSON dengan struktur berikut. Pastikan semua bagian t
                   </div>
                   <div>
                     <h5 className="text-sm font-semibold text-slate-300 mb-2">C. Lembar Kerja Peserta Didik (LKPD)</h5>
-                    <p className="text-slate-300 text-sm leading-relaxed"><em>(Terlampir)</em></p>
+                    <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">{result.lkpd || '-'}</p>
                   </div>
                   <div>
                     <h5 className="text-sm font-semibold text-slate-300 mb-2">D. Bahan Bacaan Guru & Peserta Didik</h5>
-                    <p className="text-slate-300 text-sm leading-relaxed">Buku Teks Utama Kemendikbudristek, Platform Merdeka Mengajar (PMM)</p>
+                    <ul className="list-disc list-inside text-slate-300 text-sm space-y-1">
+                      {result.sumberBelajar?.map((sb: string, i: number) => <li key={i} className="pl-2">{sb}</li>)}
+                    </ul>
                   </div>
                   <div>
                     <h5 className="text-sm font-semibold text-slate-300 mb-2">E. Glosarium</h5>
-                    <p className="text-slate-300 text-sm leading-relaxed">Daftar istilah penting terkait materi {result.topik || 'pembelajaran'}.</p>
+                    <ul className="list-disc list-inside text-slate-300 text-sm space-y-1">
+                      {result.glosarium?.map((g: any, i: number) => <li key={i} className="pl-2"><strong>{g.istilah}:</strong> {g.definisi}</li>)}
+                    </ul>
                   </div>
                   <div>
                     <h5 className="text-sm font-semibold text-slate-300 mb-2">F. Daftar Pustaka</h5>
-                    <p className="text-slate-300 text-sm leading-relaxed">Buku Panduan Guru dan Siswa Kurikulum Merdeka.</p>
+                    <ul className="list-disc list-inside text-slate-300 text-sm space-y-1">
+                      {result.daftarPustaka?.map((dp: string, i: number) => <li key={i} className="pl-2">{dp}</li>)}
+                    </ul>
                   </div>
                 </div>
               </div>

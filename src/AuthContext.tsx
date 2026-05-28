@@ -9,7 +9,7 @@ interface UserProfile {
   displayName: string;
   photoURL: string;
   role?: 'owner' | 'guest'; // Keep role for backwards compatibility if needed, but primary is tier now
-  tier?: 'Free' | 'Essential' | 'Premium' | 'Ultimate' | 'SUPREME' | 'owner';
+  tier?: 'Free' | 'Essential' | 'Premium' | 'Ultimate' | 'SUPREME' | 'Titan' | 'owner';
   createdAt: string;
   tokens?: number;
   lastResetDate?: string; // Format: YYYY-MM-DD

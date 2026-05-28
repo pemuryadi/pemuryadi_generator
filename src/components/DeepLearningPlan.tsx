@@ -6,6 +6,7 @@ import AIVisualGenerator from './AIVisualGenerator';
 import PDFRemixUpload from './PDFRemixUpload';
 import { useAuth } from '../AuthContext';
 import { getWatermarkHtml } from '../utils/print';
+import { Save } from 'lucide-react';
 
 export default function DeepLearningPlan() {
   const { profile } = useAuth();
@@ -75,7 +76,9 @@ export default function DeepLearningPlan() {
     indikatorRubrik: '',
     remixText: '',
     hasInklusi: false,
-    jumlahInklusi: ''
+    jumlahInklusi: '',
+    isAdiwiyata: false,
+    isSRA: false
   });
 
   const [profilLulusan, setProfilLulusan] = useState({
@@ -215,6 +218,12 @@ Konteks Kurikulum Merdeka & Pedagogi (SANGAT PENTING):
    - TPACK (Technological Pedagogical Content Knowledge): Tunjukkan bagaimana guru menggunakan teknologi dan pedagogi yang tepat untuk menyampaikan konten materi.
    - STEAM (Science, Technology, Engineering, Art, Mathematics): Integrasikan elemen STEAM dalam aktivitas siswa untuk melatih berpikir kritis, kreatif, dan pemecahan masalah.
 
+PENTING UNTUK ALOKASI WAKTU: Pastikan pada bagian pengalaman belajar (awal, memahami, mengaplikasi, merefleksi, penutup) memproses permintaan pengunjung sesuai dengan jumlah pertemuan yang diisi (${formData.alokasiWaktu}). Jika jumlah pertemuan > 1, pastikan "Pertemuan 1", "Pertemuan 2", dst. selalu diawali dengan baris baru (newline / \n\n) agar setiap pertemuan tersusun rapi ke bawah (bukan melanjutkan teks di baris yang sama). Gunakan bahasa Indonesia yang baik, baku, jelas, dan pastikan TIDAK ADA TYPO (salah ketik).
+
+${formData.isAdiwiyata ? `INSTRUMEN ADIWIYATA TERINTEGRASI: Sertakan penjabaran integrasi pendidikan lingkungan hidup (Adiwiyata) di dalam alur atau kegiatan, yang mencakup: a) Pembelajaran intrakurikuler; b) Kegiatan ekstrakurikuler; c) Kegiatan kokurikuler; d) Pengelolaan sarana dan prasarana ramah lingkungan; e) Gerakan perilaku ramah lingkungan di sekolah. Pastikan workflow pembelajaran ini jelas dan berkesinambungan dengan program Adiwiyata.` : ''}
+
+${formData.isSRA ? `SEKOLAH RAMAH ANAK (SRA): Sertakan pendekatan yang inklusif, aman, nyaman, dan berpusat pada siswa. Pastikan bahasa yang digunakan mempromosikan partisipasi aktif anak dan menghargai keberagaman.` : ''}
+
 Berikan hasil dalam format JSON dengan struktur berikut. Pastikan semua rencana pembelajaran mendalam (Identifikasi, Desain Pembelajaran, Pengalaman Belajar, Asesmen, dan Tindak Lanjut) terisi secara otomatis dan komprehensif. Gunakan sumber resmi dari Kementerian Pendidikan, Kebudayaan, Riset, dan Teknologi (Kemendikbudristek) atau website pendidikan yang kredibel sebagai acuan pengisian konten:
 {
   "pesertaDidik": "Identifikasi kesiapan peserta didik sebelum belajar, seperti pengetahuan awal, minat, latar belakang, dan kebutuhan belajar",
@@ -327,62 +336,104 @@ Berikan hasil dalam format JSON dengan struktur berikut. Pastikan semua rencana 
           <title>Rencana Pembelajaran Mendalam</title>
           <style>
               @page {
-                size: A4;
-                margin: 0;
-              }
-              @media print {
-                  body { 
-                    -webkit-print-color-adjust: exact; 
-                    print-color-adjust: exact; 
-                    margin: 0;
-                    padding: 10mm;
-                  }
-                  .no-print { display: none; }
-                  .content-wrapper {
-                    max-width: 100% !important;
-                    padding: 5mm !important;
-                    margin: 0 !important;
-                  }
+                size: A4 portrait;
+                margin: 2.54cm !important;
               }
               body {
-                font-family: 'Inter', sans-serif;
-                background: white;
-                position: relative;
-                min-height: 100vh;
-                margin: 0;
-                padding: 0;
-                line-height: 1.6;
-                color: #333;
+                font-family: Arial, sans-serif;
+                color: #000;
               }
-              .watermark {
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%) rotate(-45deg);
-                font-size: 5vw;
-                color: rgba(0, 0, 0, 0.05);
-                white-space: nowrap;
-                pointer-events: none;
-                z-index: -1;
-                font-weight: bold;
-                text-transform: uppercase;
+              @media print {
+                
+                html, body {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  overflow-x: hidden !important;
+                }
+                
+                html, body {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  overflow-x: hidden !important;
+                }
+                body { -webkit-print-color-adjust: exact !important; 
+                  print-color-adjust: exact !important; 
+                  padding: 0 !important; 
+                  margin: 0 !important; 
+                  width: 100% !important;
+                  max-width: 100% !important;
+                }
+                .no-print { display: none !important; } 
+
+                /* Advanced Table Printing Resets */
+                table, table * {
+                  white-space: normal !important;
+                }
+                [class*="min-w-"], [class*="w-max"], [class*="whitespace-nowrap"] {
+                  min-width: 0 !important;
+                  white-space: normal !important;
+                }
+                .whitespace-nowrap {
+                  white-space: normal !important;
+                }
+  
+                
+                table {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  table-layout: fixed !important;
+                  page-break-inside: auto !important;
+                  border-collapse: collapse !important;
+
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  table-layout: fixed !important;
+                  page-break-inside: auto !important;
+                  border-collapse: collapse !important;
+
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  min-width: 0 !important;
+                  border-collapse: collapse !important;
+                  table-layout: fixed !important;
+                  page-break-inside: auto !important;
+                }
+                tr {
+                  page-break-inside: avoid !important;
+                  page-break-after: auto !important;
+                }
+                th, td { word-wrap: break-word !important; border: 1px solid #777 !important; padding: 10px !important;
+                  word-break: break-word !important;
+                  overflow-wrap: break-word !important;
+                  white-space: normal !important;
+                }
+                th { width: 25% !important; }
+                
+                /* Reset tailwind's overflow properties which cut off content */
+                .overflow-x-auto, .overflow-y-auto, .overflow-auto {
+                  overflow: visible !important;
+                  min-width: 0 !important;
+                }
+
+                .min-w-\[800px\] {
+                  min-width: 0 !important;
+                }
+                
+                img {
+                  max-width: 100% !important;
+                  height: auto !important;
+                }
+                
+                pre, code, p {
+                  white-space: pre-wrap !important;
+                  word-break: break-word !important;
+                }
               }
-              .content-wrapper {
-                width: 100%;
-                max-width: 210mm;
-                margin: 0 auto;
-                padding: 15mm;
-                box-sizing: border-box;
-              }
-              h1, h2, h3 { text-align: center; color: #0f172a; }
-              table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-              th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; vertical-align: top; }
-              th { background: #f1f5f9; font-weight: bold; width: 25%; }
-              .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #0f172a; padding-bottom: 10px; }
-              .section-title { font-weight: bold; font-size: 1.2em; margin-top: 20px; background: #e2e8f0; padding: 5px 10px; }
-              .content-box { padding: 10px; border: 1px solid #cbd5e1; margin-top: 5px; min-height: 50px; }
-              ul { margin: 0; padding-left: 20px; }
-          </style>
+            </style>
       </head>
       <body>
           <div class="watermark">PEMURYADI - MAJU PENDIDIKAN INDONESIA</div>
@@ -706,6 +757,34 @@ Berikan hasil dalam format JSON dengan struktur berikut. Pastikan semua rencana 
                   <option value="C6: Menciptakan (Creating)">C6: Menciptakan (Creating)</option>
                   <option value="Campuran (Sesuai Kurikulum Merdeka)">Campuran (Sesuai Kurikulum Merdeka)</option>
                 </select>
+              </div>
+
+              <div className="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-700 hover:border-emerald-500/50 cursor-pointer bg-slate-800">
+                  <input
+                    type="checkbox"
+                    checked={formData.isAdiwiyata}
+                    onChange={(e) => setFormData({...formData, isAdiwiyata: e.target.checked})}
+                    className="w-5 h-5 rounded border-slate-600 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-900 bg-slate-900"
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-white">Integrasi Adiwiyata</p>
+                    <p className="text-[10px] text-slate-400">Pendidikan Lingkungan Hidup</p>
+                  </div>
+                </label>
+                
+                <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-700 hover:border-emerald-500/50 cursor-pointer bg-slate-800">
+                  <input
+                    type="checkbox"
+                    checked={formData.isSRA}
+                    onChange={(e) => setFormData({...formData, isSRA: e.target.checked})}
+                    className="w-5 h-5 rounded border-slate-600 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-900 bg-slate-900"
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-white">Sekolah Ramah Anak</p>
+                    <p className="text-[10px] text-slate-400">Pendekatan inklusif & aman</p>
+                  </div>
+                </label>
               </div>
 
               <div className="col-span-2">
@@ -1067,7 +1146,7 @@ Berikan hasil dalam format JSON dengan struktur berikut. Pastikan semua rencana 
               <div className="gen-card bg-slate-800/80 rounded-xl p-5 shadow-sm overflow-x-auto">
                 <h4 className="font-semibold text-emerald-400 mb-3">Rubrik Penilaian ({result.jenisRubrik || 'Rubrik'})</h4>
                 {result.rubrik && result.rubrik.length > 0 ? (
-                  <table className="w-full text-sm text-left text-slate-300">
+                  <table className="w-full text-sm text-left text-slate-300 min-w-[800px]">
                     <thead className="text-xs text-slate-400 uppercase bg-slate-700/50">
                       <tr>
                         <th className="px-4 py-3">Indikator</th>
@@ -1080,7 +1159,7 @@ Berikan hasil dalam format JSON dengan struktur berikut. Pastikan semua rencana 
                     </thead>
                     <tbody>
                       {result.rubrik.map((r: any, i: number) => (
-                        <tr key={i} className="border-b border-slate-700">
+                        <tr key={i} className="border-b border-slate-700 align-top">
                           <td className="px-4 py-3 font-medium text-white">{r.indikator}</td>
                           <td className="px-4 py-3 text-slate-400">{r.keterangan || '-'}</td>
                           <td className="px-4 py-3">{r.baruMemulai}</td>

@@ -53,6 +53,9 @@ export default function MengajarHarian() {
     mataPelajaran: '',
     customMapel: '',
     topikMateri: '',
+    alokasiWaktu: '1',
+    isAdiwiyata: false,
+    isSRA: false,
     remixText: '',
     hasInklusi: false,
     jumlahInklusi: ''
@@ -141,6 +144,7 @@ Informasi Umum:
 - Kelas: ${formData.kelas}
 ${formData.jenisGuru === 'Guru Mapel' ? `- Mata Pelajaran: ${mapel}` : ''}
 - Topik/Materi: ${formData.topikMateri}
+- Alokasi Waktu / Jumlah Pertemuan: ${formData.alokasiWaktu} pertemuan
 ${formData.hasInklusi ? `- Terdapat Anak Inklusi: Ya, berjumlah ${formData.jumlahInklusi} siswa. Pastikan hasil generate menyediakan adaptasi atau modifikasi untuk anak inklusi.` : ''}
 
 ${formData.remixText ? `INSTRUKSI REMIX:
@@ -158,6 +162,12 @@ ${selectedFeatures.asesmen ? '- "asesmen": Objek berisi "questions" (array soal 
 ${selectedFeatures.rubrikSikap ? '- "rubrikSikap": Objek berisi "headers" (array string untuk kolom tabel) dan "rows" (array objek dengan "aspect" dan "criteria" array string sesuai header).' : ''}
 ${selectedFeatures.rubrikHarian ? '- "rubrikHarian": Objek berisi "headers" (array string untuk kolom tabel) dan "rows" (array objek dengan "aspect" dan "criteria" array string sesuai header).' : ''}
 - "outOfTopic": Array string berisi ide-ide Out Of Topic (ice breakers, intermezzo, atau selingan) yang benar-benar efektif dan relevan untuk menyegarkan suasana kelas.
+
+PENTING UNTUK ALOKASI WAKTU: Pastikan pada bagian pengalaman belajar/ringkasan atau rancangan aktivitas memproses permintaan pengunjung sesuai dengan jumlah pertemuan yang diisi (${formData.alokasiWaktu} pertemuan). Jika jumlah pertemuan > 1, pastikan "Pertemuan 1", "Pertemuan 2", dst. selalu diawali dengan baris baru (newline / \n\n) agar setiap pertemuan tersusun rapi ke bawah (bukan melanjutkan teks di baris yang sama). Gunakan bahasa Indonesia yang baik, baku, jelas, dan pastikan TIDAK ADA TYPO (salah ketik).
+
+${formData.isAdiwiyata ? `INSTRUMEN ADIWIYATA TERINTEGRASI: Sertakan penjabaran integrasi pendidikan lingkungan hidup (Adiwiyata) di dalam alur atau kegiatan, yang mencakup: a) Pembelajaran intrakurikuler; b) Kegiatan ekstrakurikuler; c) Kegiatan kokurikuler; d) Pengelolaan sarana dan prasarana ramah lingkungan; e) Gerakan perilaku ramah lingkungan di sekolah. Pastikan workflow pembelajaran ini jelas dan berkesinambungan dengan program Adiwiyata.` : ''}
+
+${formData.isSRA ? `SEKOLAH RAMAH ANAK (SRA): Sertakan pendekatan yang inklusif, aman, nyaman, dan berpusat pada siswa. Pastikan bahasa yang digunakan mempromosikan partisipasi aktif anak dan menghargai keberagaman.` : ''}
 
 Pastikan hanya mengembalikan properti JSON untuk fitur yang diminta. PASTIKAN JSON VALID.`;
 
@@ -298,17 +308,103 @@ Pastikan hanya mengembalikan properti JSON untuk fitur yang diminta. PASTIKAN JS
           <head>
             <title>Print - Mengajar Harian</title>
             <style>
-              body { font-family: Arial, sans-serif; line-height: 1.6; color: #000; background: #fff; padding: 20px; position: relative; }
-              h1, h2, h3 { color: #111; }
-              .markdown-body { font-size: 12pt; }
-              table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-              th { background-color: #f2f2f2; }
-              @page { margin: 0; }
+              @page {
+                size: A4 portrait;
+                margin: 2.54cm !important;
+              }
+              body {
+                font-family: Arial, sans-serif;
+                color: #000;
+              }
               @media print {
-                body { padding: 2cm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                .no-print { display: none; }
-                .page-break { page-break-before: always; }
+                
+                html, body {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  overflow-x: hidden !important;
+                }
+                
+                html, body {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  overflow-x: hidden !important;
+                }
+                body { -webkit-print-color-adjust: exact !important; 
+                  print-color-adjust: exact !important; 
+                  padding: 0 !important; 
+                  margin: 0 !important; 
+                  width: 100% !important;
+                  max-width: 100% !important;
+                }
+                .no-print { display: none !important; } 
+
+                /* Advanced Table Printing Resets */
+                table, table * {
+                  white-space: normal !important;
+                }
+                [class*="min-w-"], [class*="w-max"], [class*="whitespace-nowrap"] {
+                  min-width: 0 !important;
+                  white-space: normal !important;
+                }
+                .whitespace-nowrap {
+                  white-space: normal !important;
+                }
+  
+                
+                table {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  table-layout: fixed !important;
+                  page-break-inside: auto !important;
+                  border-collapse: collapse !important;
+
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  table-layout: fixed !important;
+                  page-break-inside: auto !important;
+                  border-collapse: collapse !important;
+
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  min-width: 0 !important;
+                  border-collapse: collapse !important;
+                  table-layout: fixed !important;
+                  page-break-inside: auto !important;
+                }
+                tr {
+                  page-break-inside: avoid !important;
+                  page-break-after: auto !important;
+                }
+                th, td { word-wrap: break-word !important; border: 1px solid #777 !important; padding: 10px !important;
+                  word-break: break-word !important;
+                  overflow-wrap: break-word !important;
+                  white-space: normal !important;
+                }
+                th { width: 25% !important; }
+                
+                /* Reset tailwind's overflow properties which cut off content */
+                .overflow-x-auto, .overflow-y-auto, .overflow-auto {
+                  overflow: visible !important;
+                  min-width: 0 !important;
+                }
+
+                .min-w-\[800px\] {
+                  min-width: 0 !important;
+                }
+                
+                img {
+                  max-width: 100% !important;
+                  height: auto !important;
+                }
+                
+                pre, code, p {
+                  white-space: pre-wrap !important;
+                  word-break: break-word !important;
+                }
               }
             </style>
           </head>
@@ -468,6 +564,46 @@ Pastikan hanya mengembalikan properti JSON untuk fitur yang diminta. PASTIKAN JS
                   value={formData.topikMateri}
                   onChange={(e) => setFormData({...formData, topikMateri: e.target.value})}
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Alokasi Waktu / Jumlah Pertemuan</label>
+                <input 
+                  type="number"
+                  min="1"
+                  className="w-full bg-slate-900/50 border border-slate-600 rounded-xl p-3 text-white text-sm focus:border-cyber-blue transition-all outline-none"
+                  placeholder="Contoh: 4"
+                  value={formData.alokasiWaktu}
+                  onChange={(e) => setFormData({...formData, alokasiWaktu: e.target.value})}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <label className="flex items-center gap-3 p-3 rounded-lg border border-slate-700 hover:border-cyber-blue/50 cursor-pointer bg-slate-900/50">
+                  <input
+                    type="checkbox"
+                    checked={formData.isAdiwiyata}
+                    onChange={(e) => setFormData({...formData, isAdiwiyata: e.target.checked})}
+                    className="w-5 h-5 rounded border-slate-600 text-cyber-blue focus:ring-cyber-blue focus:ring-offset-slate-900 bg-slate-900"
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-white">Integrasi Adiwiyata</p>
+                    <p className="text-[10px] text-slate-400">Pendidikan Lingkungan Hidup</p>
+                  </div>
+                </label>
+                
+                <label className="flex items-center gap-3 p-3 rounded-lg border border-slate-700 hover:border-cyber-blue/50 cursor-pointer bg-slate-900/50">
+                  <input
+                    type="checkbox"
+                    checked={formData.isSRA}
+                    onChange={(e) => setFormData({...formData, isSRA: e.target.checked})}
+                    className="w-5 h-5 rounded border-slate-600 text-cyber-blue focus:ring-cyber-blue focus:ring-offset-slate-900 bg-slate-900"
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-white">Sekolah Ramah Anak</p>
+                    <p className="text-[10px] text-slate-400">Pendekatan inklusif & aman</p>
+                  </div>
+                </label>
               </div>
 
               <div className="space-y-3">
@@ -736,7 +872,7 @@ Pastikan hanya mengembalikan properti JSON untuk fitur yang diminta. PASTIKAN JS
                       <Star size={20} /> Rubrik Penilaian Sikap
                     </h2>
                     <div className="overflow-x-auto">
-                      <table className="w-full text-sm text-left text-slate-300">
+                      <table className="w-full text-sm text-left text-slate-300 min-w-[800px]">
                         <thead className="text-xs text-white uppercase bg-slate-800/80 border-b border-slate-600">
                           <tr>
                             <th className="px-4 py-3">Aspek</th>
@@ -745,7 +881,7 @@ Pastikan hanya mengembalikan properti JSON untuk fitur yang diminta. PASTIKAN JS
                         </thead>
                         <tbody>
                           {result.rubrikSikap.rows.map((row: any, i: number) => (
-                            <tr key={i} className="bg-slate-900/30 border-b border-slate-700/50 hover:bg-slate-800/50">
+                            <tr key={i} className="bg-slate-900/30 border-b border-slate-700/50 hover:bg-slate-800/50 align-top">
                               <td className="px-4 py-3 font-medium text-white">{row.aspect}</td>
                               {row.criteria.map((c: string, j: number) => <td key={j} className="px-4 py-3">{c}</td>)}
                             </tr>
@@ -762,7 +898,7 @@ Pastikan hanya mengembalikan properti JSON untuk fitur yang diminta. PASTIKAN JS
                       <Activity size={20} /> Rubrik Penilaian Harian
                     </h2>
                     <div className="overflow-x-auto">
-                      <table className="w-full text-sm text-left text-slate-300">
+                      <table className="w-full text-sm text-left text-slate-300 min-w-[800px]">
                         <thead className="text-xs text-white uppercase bg-slate-800/80 border-b border-slate-600">
                           <tr>
                             <th className="px-4 py-3">Aspek</th>
@@ -771,7 +907,7 @@ Pastikan hanya mengembalikan properti JSON untuk fitur yang diminta. PASTIKAN JS
                         </thead>
                         <tbody>
                           {result.rubrikHarian.rows.map((row: any, i: number) => (
-                            <tr key={i} className="bg-slate-900/30 border-b border-slate-700/50 hover:bg-slate-800/50">
+                            <tr key={i} className="bg-slate-900/30 border-b border-slate-700/50 hover:bg-slate-800/50 align-top">
                               <td className="px-4 py-3 font-medium text-white">{row.aspect}</td>
                               {row.criteria.map((c: string, j: number) => <td key={j} className="px-4 py-3">{c}</td>)}
                             </tr>

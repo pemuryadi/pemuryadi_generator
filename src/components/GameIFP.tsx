@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { GoogleGenAI } from '@google/genai';
-import { Play, Loader2, Trophy, Users, BookOpen, Settings } from 'lucide-react';
+import { Play, Loader2, Trophy, Users, BookOpen, Settings, Maximize } from 'lucide-react';
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -40,6 +40,29 @@ export default function GameIFP() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [gameHtml, setGameHtml] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const toggleFullscreen = () => {
+    const container = document.getElementById('ifp-game-container');
+    if (!container) return;
+
+    if (!document.fullscreenElement) {
+      container.requestFullscreen().then(() => setIsFullscreen(true)).catch(err => {
+        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+      });
+    } else {
+      document.exitFullscreen().then(() => setIsFullscreen(false));
+    }
+  };
+
+  React.useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   const generateGame = async () => {
     if (!formData.topik) {
@@ -265,18 +288,29 @@ Output HANYA kode HTML lengkap (dimulai dengan <!DOCTYPE html> dan diakhiri deng
             </div>
 
             {/* Preview Section */}
-            <div className="lg:col-span-2">
-              <div className="bg-slate-950 rounded-2xl border border-slate-700/50 h-full min-h-[600px] flex flex-col overflow-hidden relative shadow-inner">
+            <div className={`lg:col-span-2 ${isFullscreen ? 'fixed inset-0 z-[100] m-0 !h-screen bg-slate-950 flex flex-col' : ''}`} id="ifp-game-container">
+              <div className={`bg-slate-950 border-slate-700/50 flex flex-col overflow-hidden relative shadow-inner ${isFullscreen ? 'h-full border-none' : 'rounded-2xl border h-full min-h-[600px]'}`}>
                 {/* Browser Chrome */}
-                <div className="bg-slate-900 px-4 py-3 border-b border-slate-800 flex items-center gap-2">
-                  <div className="flex gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
+                <div className="bg-slate-900 px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+                  <div className="flex gap-1.5 w-16">
+                    <div onClick={() => isFullscreen ? document.exitFullscreen() : null} className="w-3 h-3 rounded-full bg-red-500/80 cursor-pointer hover:bg-red-500 group relative">
+                      <span className="absolute -top-1 opacity-0 group-hover:opacity-100 text-[8px] left-0.5 text-black">x</span>
+                    </div>
                     <div className="w-3 h-3 rounded-full bg-amber-500/80"></div>
                     <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
                   </div>
-                  <div className="mx-auto bg-slate-950 px-4 py-1 rounded-md text-xs text-slate-500 font-mono flex items-center gap-2">
+                  <div className="mx-auto bg-slate-950 px-6 py-1 rounded-md text-xs text-slate-500 font-mono flex items-center gap-2 flex-1 max-w-sm justify-center">
                     <Trophy size={12} className="text-amber-400" />
                     IFP EduGame Player
+                  </div>
+                  <div className="flex gap-2 w-16 justify-end">
+                    <button 
+                      onClick={toggleFullscreen}
+                      className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white transition-colors"
+                      title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                    >
+                      <Maximize size={16} />
+                    </button>
                   </div>
                 </div>
 

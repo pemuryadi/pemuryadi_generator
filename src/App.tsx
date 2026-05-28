@@ -710,126 +710,130 @@ export default function App() {
         {/* Dynamic Content */}
         <div className="p-4 md:p-6 max-w-7xl mx-auto w-full">
           {activeTab === 'beranda' && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-              {/* Hero Dashboard Section */}
-              <div className="flex flex-col lg:flex-row gap-8 mb-8">
-                <div className="cyber-card p-8 rounded-2xl flex-1">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyber-blue/10 border border-cyber-blue/20 mb-6">
-                    <span className="w-2 h-2 bg-cyber-blue rounded-full animate-pulse"></span> 
-                    <span className="text-[10px] font-bold text-cyber-blue uppercase tracking-widest">System Online</span>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+              
+              {/* Hero Dashboard Section (Span 2) */}
+              <div className="cyber-card p-6 md:p-8 rounded-2xl lg:col-span-2 flex flex-col justify-center">
+                <div className="inline-flex flex-wrap items-center gap-2 px-3 py-1 rounded-full bg-cyber-blue/10 border border-cyber-blue/20 mb-6 w-max">
+                  <span className="w-2 h-2 bg-cyber-blue rounded-full animate-pulse"></span> 
+                  <span className="text-[10px] font-bold text-cyber-blue uppercase tracking-widest">System Online</span>
+                </div>
+                <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black mb-4 tracking-tighter leading-none italic">
+                  WELCOME TO THE <span className="text-cyber-blue">FUTURE</span> OF EDUCATION
+                </h2>
+                <p className="text-slate-400 text-sm md:text-base max-w-xl mb-6 lg:mb-8 font-medium italic">
+                  Empowering educators with next-gen AI tools for module generation, assessment planning, and school administration.
+                </p>
+                <div className="flex flex-wrap gap-4 mt-auto">
+                  <button onClick={() => handleTabChange('modul')} className="cyber-button px-6 py-2.5 md:px-8 md:py-3 text-xs md:text-sm">
+                    Operation System: {osName} | RAM: {ramInfo}
+                  </button>
+                  <button onClick={() => setIsChatOpen(true)} className="px-6 py-2.5 md:px-8 md:py-3 text-xs md:text-sm font-bold uppercase tracking-widest border border-cyber-purple text-cyber-purple hover:bg-cyber-purple hover:text-white transition-all italic">
+                    Consult AI Assistant
+                  </button>
+                </div>
+              </div>
+              
+              {/* Quick Profile (Span 1) */}
+              <div className="lg:col-span-1 h-full">
+                <QuickProfile />
+              </div>
+
+              {/* Traffic Analytics (Span 1) */}
+              <div className="cyber-card p-6 rounded-2xl overflow-hidden flex flex-col h-full col-span-1">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xs font-bold text-cyber-purple uppercase tracking-widest">Traffic Analytics</h3>
+                  <Activity size={16} className="text-cyber-purple" />
+                </div>
+                <div className="space-y-4 flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-500">Daily Access</span>
+                    <span className="text-lg font-mono font-bold text-cyber-blue">{visitors.today}</span>
                   </div>
-                  <h2 className="text-4xl md:text-6xl font-black mb-4 tracking-tighter leading-none italic">
-                    WELCOME TO THE <span className="text-cyber-blue">FUTURE</span> OF EDUCATION
-                  </h2>
-                  <p className="text-slate-400 text-sm md:text-base max-w-xl mb-8 font-medium italic">
-                    Empowering educators with next-gen AI tools for module generation, assessment planning, and school administration.
-                  </p>
-                  <div className="flex flex-wrap gap-4">
-                    <button onClick={() => handleTabChange('modul')} className="cyber-button px-8 py-3 text-sm">
-                      Operation System: {osName} | RAM: {ramInfo}
-                    </button>
-                    <button onClick={() => setIsChatOpen(true)} className="px-8 py-3 text-sm font-bold uppercase tracking-widest border border-cyber-purple text-cyber-purple hover:bg-cyber-purple hover:text-white transition-all italic">
-                      Consult AI Assistant
-                    </button>
+                  <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
+                    <div className="bg-cyber-blue h-full w-3/4 shadow-[0_0_10px_var(--color-cyber-blue)]"></div>
+                  </div>
+                  <div className="flex items-center justify-between mt-4">
+                    <span className="text-xs text-slate-500">Monthly Load</span>
+                    <span className="text-lg font-mono font-bold text-cyber-purple">{visitors.month}</span>
+                  </div>
+                  <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
+                    <div className="bg-cyber-purple h-full w-1/2 shadow-[0_0_10px_var(--color-cyber-purple)]"></div>
                   </div>
                 </div>
-                
-                <div className="shrink-0">
-                  <QuickProfile />
+                <div className="pt-4 mt-auto border-t border-white/10 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Heart size={14} className="text-cyber-yellow" />
+                    <span className="text-xs text-slate-500">Favorites</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg font-mono font-bold text-cyber-yellow">{favorites}</span>
+                    <button onClick={incrementFavorites} className="p-1.5 rounded bg-cyber-yellow/10 text-cyber-yellow hover:bg-cyber-yellow hover:text-black transition-colors" title="Favorite this app">
+                      <Heart size={14} />
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              {/* Analytics & Logs Row */}
-              <div className="flex flex-wrap justify-center lg:justify-start gap-6">
-                <div className="cyber-card p-6 rounded-2xl overflow-y-auto custom-scrollbar flex-shrink-0 w-full sm:w-[318px] min-h-[160px]">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xs font-bold text-cyber-purple uppercase tracking-widest">Traffic Analytics</h3>
-                    <Activity size={16} className="text-cyber-purple" />
-                  </div>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-slate-500">Daily Access</span>
-                      <span className="text-lg font-mono font-bold text-cyber-blue">{visitors.today}</span>
-                    </div>
-                    <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
-                      <div className="bg-cyber-blue h-full w-3/4 shadow-[0_0_10px_var(--color-cyber-blue)]"></div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-slate-500">Monthly Load</span>
-                      <span className="text-lg font-mono font-bold text-cyber-purple">{visitors.month}</span>
-                    </div>
-                    <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
-                      <div className="bg-cyber-purple h-full w-1/2 shadow-[0_0_10px_var(--color-cyber-purple)]"></div>
-                    </div>
-                    <div className="pt-2 border-t border-white/10 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Heart size={14} className="text-cyber-yellow" />
-                        <span className="text-xs text-slate-500">Favorites</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-lg font-mono font-bold text-cyber-yellow">{favorites}</span>
-                        <button onClick={incrementFavorites} className="p-1.5 rounded bg-cyber-yellow/10 text-cyber-yellow hover:bg-cyber-yellow hover:text-black transition-colors" title="Favorite this app">
-                          <Heart size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+              {/* Aktivitas Sering Diklik (Span 1 or 2 depending on layout preferences, let's keep it 1) */}
+              <div className="cyber-card p-6 rounded-2xl overflow-y-auto custom-scrollbar flex flex-col h-full col-span-1 max-h-[300px] lg:max-h-full">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xs font-bold text-cyber-blue uppercase tracking-widest flex items-center gap-2">
+                    <div className="w-2 h-2 bg-cyber-blue animate-pulse rounded-full"></div>
+                    Aktivitas Sering Diklik
+                  </h3>
                 </div>
-
-                <div className="cyber-card p-6 rounded-2xl overflow-y-auto custom-scrollbar flex-shrink-0 w-full sm:w-[318px] min-h-[160px]">
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-xs font-bold text-cyber-blue uppercase tracking-widest flex items-center gap-2">
-                      <div className="w-2 h-2 bg-cyber-blue animate-pulse rounded-full"></div>
-                      Aktivitas Paling Sering Diklik
-                    </h3>
-                  </div>
-                  <div className="space-y-4 font-mono text-[10px]">
-                    {Object.entries(activityClicks).length > 0 ? (
-                      Object.entries(activityClicks)
-                        .sort(([, a], [, b]) => b - a)
-                        .slice(0, 5)
-                        .map(([activity, count], index) => {
-                          const menuItem = menuItems.flatMap(item => [item, ...(item.dropdown || [])]).find(item => item.id === activity);
-                          const label = menuItem ? menuItem.label : activity;
-                          return (
-                            <div key={activity} className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/5 pb-2 gap-1 sm:gap-4">
-                              <div className="flex items-start sm:items-center gap-2 sm:gap-4 overflow-hidden">
-                                <span className="text-slate-600 shrink-0">#{index + 1}</span>
-                                <span className="text-slate-300 truncate sm:whitespace-normal sm:break-words">{label}</span>
-                              </div>
-                              <span className="text-cyber-blue font-bold self-end sm:self-auto shrink-0">{count} klik</span>
+                <div className="space-y-4 font-mono text-[10px] flex-1">
+                  {Object.entries(activityClicks).length > 0 ? (
+                    Object.entries(activityClicks)
+                      .sort(([, a], [, b]) => b - a)
+                      .slice(0, 5)
+                      .map(([activity, count], index) => {
+                        const menuItem = menuItems.flatMap(item => [item, ...(item.dropdown || [])]).find(item => item.id === activity);
+                        const label = menuItem ? menuItem.label : activity;
+                        return (
+                          <div key={activity} className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/5 pb-2 gap-1 sm:gap-4">
+                            <div className="flex items-start sm:items-center gap-2 sm:gap-4 overflow-hidden">
+                              <span className="text-slate-600 shrink-0">#{index + 1}</span>
+                              <span className="text-slate-300 truncate sm:whitespace-normal sm:break-words">{label}</span>
                             </div>
-                          );
-                        })
-                    ) : (
-                      <div className="text-slate-500 italic">Belum ada aktivitas...</div>
-                    )}
-                  </div>
+                            <span className="text-cyber-blue font-bold self-end sm:self-auto shrink-0">{count} klik</span>
+                          </div>
+                        );
+                      })
+                  ) : (
+                    <div className="text-slate-500 italic">Belum ada aktivitas...</div>
+                  )}
                 </div>
               </div>
 
-              {/* Feedback & Support */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="cyber-card p-6 rounded-2xl flex items-center justify-center" style={{ width: '300px', height: '300px', margin: '0 auto' }}>
-                   <FeedbackForm inline={true} />
-                </div>
-                <div className="space-y-6">
-                   <div className="cyber-card p-8 rounded-2xl bg-gradient-to-br from-cyber-yellow/5 to-transparent">
-                      <h3 className="text-xl font-black italic text-cyber-yellow mb-4 uppercase tracking-tighter">Support the Network</h3>
-                      <p className="text-xs text-slate-400 mb-6 leading-relaxed">Your contributions keep the system online and free for all educators. Join the mission to advance Indonesian education.</p>
-                      <a href="https://saweria.co/pemuryadi" target="_blank" rel="noreferrer" className="inline-flex items-center gap-3 px-6 py-3 bg-cyber-yellow text-black font-black uppercase text-xs tracking-widest hover:scale-105 transition-transform italic">
+              {/* Feedback Form (Span 1) */}
+              <div className="cyber-card p-6 rounded-2xl flex items-center justify-center col-span-1 h-full min-h-[300px]">
+                 <FeedbackForm inline={true} />
+              </div>
+
+              {/* Support & Premium Assets Row (Span 3) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:col-span-3">
+                 <div className="cyber-card p-6 md:p-8 rounded-2xl bg-gradient-to-br from-cyber-yellow/5 to-transparent h-full flex flex-col justify-center">
+                    <h3 className="text-lg md:text-xl font-black italic text-cyber-yellow mb-3 uppercase tracking-tighter">Support the Network</h3>
+                    <p className="text-xs md:text-sm text-slate-400 mb-6 leading-relaxed max-w-sm">Your contributions keep the system online and free for all educators. Join the mission to advance Indonesian education.</p>
+                    <div className="mt-auto">
+                      <a href="https://saweria.co/pemuryadi" target="_blank" rel="noreferrer" className="inline-flex items-center gap-3 px-5 py-2.5 bg-cyber-yellow text-black font-black uppercase text-[10px] md:text-xs tracking-widest hover:scale-105 transition-transform italic">
                         ☕ Donate via Saweria
                       </a>
-                   </div>
-                   <div className="cyber-card p-8 rounded-2xl bg-gradient-to-br from-cyber-blue/5 to-transparent">
-                      <h3 className="text-xl font-black italic text-cyber-blue mb-4 uppercase tracking-tighter">Premium Assets</h3>
-                      <p className="text-xs text-slate-400 mb-6 leading-relaxed">Access high-end teaching materials and exclusive module templates in our digital marketplace.</p>
-                      <a href="https://lynk.id/pemuryadi" target="_blank" rel="noreferrer" className="inline-flex items-center gap-3 px-6 py-3 bg-cyber-blue text-black font-black uppercase text-xs tracking-widest hover:scale-105 transition-transform italic">
+                    </div>
+                 </div>
+                 <div className="cyber-card p-6 md:p-8 rounded-2xl bg-gradient-to-br from-cyber-blue/5 to-transparent h-full flex flex-col justify-center">
+                    <h3 className="text-lg md:text-xl font-black italic text-cyber-blue mb-3 uppercase tracking-tighter">Premium Assets</h3>
+                    <p className="text-xs md:text-sm text-slate-400 mb-6 leading-relaxed max-w-sm">Access high-end teaching materials and exclusive module templates in our digital marketplace.</p>
+                    <div className="mt-auto">
+                      <a href="https://lynk.id/pemuryadi" target="_blank" rel="noreferrer" className="inline-flex items-center gap-3 px-5 py-2.5 bg-cyber-blue text-black font-black uppercase text-[10px] md:text-xs tracking-widest hover:scale-105 transition-transform italic">
                         🛒 Marketplace
                       </a>
-                   </div>
-                </div>
+                    </div>
+                 </div>
               </div>
+              
             </div>
           )}
 

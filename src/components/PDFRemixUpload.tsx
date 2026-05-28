@@ -1,13 +1,13 @@
 import React, { useState, useRef } from 'react';
 import { Upload, FileText, X, Loader2, RefreshCw } from 'lucide-react';
-import { extractTextFromPDF } from '../utils/pdf';
+import mammoth from 'mammoth';
 
 interface PDFRemixUploadProps {
-  onTextExtracted: (text: string) => void;
+  onDataExtracted: (data: { type: 'text' | 'inline', content: string, mimeType?: string } | null) => void;
   label?: string;
 }
 
-export default function PDFRemixUpload({ onTextExtracted, label = "Remix dari PDF" }: PDFRemixUploadProps) {
+export default function PDFRemixUpload({ onDataExtracted, label = "Remix dari PDF / Word / Image" }: PDFRemixUploadProps) {
   const [isExtracting, setIsExtracting] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -17,8 +17,15 @@ export default function PDFRemixUpload({ onTextExtracted, label = "Remix dari PD
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.type !== 'application/pdf') {
-      setError('Hanya file PDF yang didukung.');
+    const allowedTypes = [
+      'application/pdf', 
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'image/jpeg',
+      'image/png'
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      setError('Hanya file PDF, Word (DOCX), JPEG, dan PNG yang didukung.');
       return;
     }
 
@@ -27,13 +34,28 @@ export default function PDFRemixUpload({ onTextExtracted, label = "Remix dari PD
     setFileName(file.name);
 
     try {
-      const text = await extractTextFromPDF(file);
-      if (text.length < 50) {
-        throw new Error('Teks yang diekstrak terlalu pendek atau tidak terbaca.');
+      if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        onDataExtracted({ type: 'text', content: result.value });
+      } else {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const result = event.target?.result as string;
+          const base64Data = result.split(',')[1];
+          onDataExtracted({
+            type: 'inline',
+            content: base64Data,
+            mimeType: file.type
+          });
+        };
+        reader.onerror = () => {
+          throw new Error('Gagal membaca file.');
+        };
+        reader.readAsDataURL(file);
       }
-      onTextExtracted(text);
     } catch (err: any) {
-      setError(err.message || 'Gagal membaca PDF');
+      setError(err.message || 'Gagal membaca file.');
       setFileName(null);
     } finally {
       setIsExtracting(false);
@@ -50,6 +72,7 @@ export default function PDFRemixUpload({ onTextExtracted, label = "Remix dari PD
             onClick={() => {
               setFileName(null);
               setError(null);
+              onDataExtracted(null);
             }}
             className="text-red-400 hover:text-red-300 transition-colors"
           >
@@ -69,14 +92,14 @@ export default function PDFRemixUpload({ onTextExtracted, label = "Remix dari PD
           type="file" 
           ref={fileInputRef}
           onChange={handleFileChange}
-          accept=".pdf"
+          accept=".pdf,.docx,.jpeg,.jpg,.png"
           className="hidden"
         />
         
         {isExtracting ? (
           <>
             <Loader2 className="animate-spin text-cyber-blue" size={24} />
-            <span className="text-xs text-cyber-blue font-bold animate-pulse">Mengekstrak Teks...</span>
+            <span className="text-xs text-cyber-blue font-bold animate-pulse">Menyiapkan Dokumen...</span>
           </>
         ) : fileName ? (
           <>
@@ -89,8 +112,8 @@ export default function PDFRemixUpload({ onTextExtracted, label = "Remix dari PD
         ) : (
           <>
             <Upload className="text-slate-500" size={24} />
-            <span className="text-xs text-slate-400 font-medium">Klik untuk Upload PDF</span>
-            <span className="text-[10px] text-slate-500">Sistem akan membaca & memberikan Remix AI</span>
+            <span className="text-xs text-slate-400 font-medium text-center">Klik untuk Upload Dokumen</span>
+            <span className="text-[10px] text-slate-500 text-center">PDF, DOCX, JPEG, PNG (AI akan memaksa baca PDF terproteksi)</span>
           </>
         )}
       </div>

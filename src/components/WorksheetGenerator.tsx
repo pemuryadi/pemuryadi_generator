@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { educationLevels, phaseClassMap, subjectsByLevel } from '../constants';
+import { educationLevels, phaseClassMap, subjectsByLevel, anSubjects, olympiadSubjectsByLevel, mapelDescriptions } from '../constants';
 import { GoogleGenAI, Type } from '@google/genai';
 import Markdown from 'react-markdown';
 import PrintSupportModal from './PrintSupportModal';
@@ -41,16 +41,41 @@ export default function WorksheetGenerator() {
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
-  const [formData, setFormData] = useState({
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [formData, setFormData] = useState<{
+    jenjang: string;
+    fase: string;
+    kelas: string;
+    tipeUjian: string;
+    mapel: string;
+    topik: string;
+    bentukSoal: string[];
+    levelKognitif: string[];
+    jumlahSoalTotal: number;
+    jumlahSoalPerBentuk: Record<string, number>;
+    instruksiTambahan: string;
+    gayaDesain: string;
+    namaGuru: string;
+    jenisNipGuru: string;
+    nipGuru: string;
+    namaSekolah: string;
+    jenisSekolah: string;
+    kepalaSekolah: string;
+    jenisNipKepalaSekolah: string;
+    nipKepalaSekolah: string;
+    remixText: string;
+    remixData: { type: 'text' | 'inline', content: string, mimeType?: string } | null;
+  }>({
     jenjang: 'sd',
     fase: 'A',
     kelas: '1',
+    tipeUjian: 'Ujian Biasa',
     mapel: 'bahasa-indonesia',
     topik: '',
-    jenisSoal: 'Pilihan Ganda',
-    jumlahSoal: 5,
-    tingkatKesulitan: 'Sedang',
-    tingkatanKognitif: 'Campuran (Sesuai Kurikulum Merdeka)',
+    bentukSoal: ['Pilihan Ganda'],
+    jumlahSoalTotal: 5,
+    jumlahSoalPerBentuk: { 'Pilihan Ganda': 5 },
+    levelKognitif: ['C2', 'C3'],
     instruksiTambahan: '',
     gayaDesain: 'Minimalis',
     namaGuru: '',
@@ -61,10 +86,48 @@ export default function WorksheetGenerator() {
     kepalaSekolah: '',
     jenisNipKepalaSekolah: 'NIP',
     nipKepalaSekolah: '',
-    remixText: ''
+    remixText: '',
+    remixData: null
   });
 
+  const handleBentukSoalChange = (bentuk: string) => {
+    let current = [...formData.bentukSoal];
+    if (bentuk === 'Kombinasi') { current = ['Kombinasi']; }
+    else {
+      current = current.filter(c => c !== 'Kombinasi');
+      if (current.includes(bentuk)) current = current.filter(c => c !== bentuk);
+      else current.push(bentuk);
+    }
+    if (current.length === 0) current = ['Pilihan Ganda'];
+    setFormData({ ...formData, bentukSoal: current });
+  };
+
+  const handleLevelKognitifChange = (lvl: string) => {
+    let current = [...formData.levelKognitif];
+    if (lvl === 'Kombinasi') { current = ['Kombinasi']; }
+    else {
+      current = current.filter(c => c !== 'Kombinasi');
+      if (current.includes(lvl)) current = current.filter(c => c !== lvl);
+      else current.push(lvl);
+    }
+    if (current.length === 0) current = ['C1'];
+    setFormData({ ...formData, levelKognitif: current });
+  };
+
   const [result, setResult] = useState<string | null>(null);
+
+  const getSubjectList = () => {
+    if (formData.tipeUjian === 'Asesmen Nasional') return anSubjects;
+    if (formData.tipeUjian === 'Olimpiade') return olympiadSubjectsByLevel[formData.jenjang] || [];
+    return subjectsByLevel[formData.jenjang] || [];
+  };
+
+  useEffect(() => {
+    const list = getSubjectList();
+    if (list.length > 0 && !list.find(s => s.id === formData.mapel)) {
+      setFormData(prev => ({ ...prev, mapel: list[0].id }));
+    }
+  }, [formData.tipeUjian, formData.jenjang]);
 
   const designPrompts: Record<string, string> = {
     'Minimalis': 'Use mostly white space, thin lines, soft gray and navy colors. Clean layout, no clutter, very clear structure.',
@@ -76,21 +139,22 @@ export default function WorksheetGenerator() {
 
   useEffect(() => {
     const phases = phaseClassMap[formData.jenjang]?.phases || [];
-    const firstPhase = phases[0]?.id || '';
-    
-    const classes = phaseClassMap[formData.jenjang]?.classes[firstPhase] || [];
-    const firstClass = classes[0]?.id || '';
-
-    const subjects = subjectsByLevel[formData.jenjang] || [];
-    const firstSubject = subjects[0]?.id || '';
-
-    setFormData(prev => ({ ...prev, fase: firstPhase, kelas: firstClass, mapel: firstSubject }));
-  }, [formData.jenjang]);
-
-  useEffect(() => {
-    const classes = phaseClassMap[formData.jenjang]?.classes[formData.fase] || [];
-    setFormData(prev => ({ ...prev, kelas: classes[0]?.id || '' }));
-  }, [formData.fase, formData.jenjang]);
+    if (!phases.find(p => p.id === formData.fase)) {
+      const firstPhase = phases[0]?.id || '';
+      const classes = phaseClassMap[formData.jenjang]?.classes[firstPhase] || [];
+      const firstClass = classes[0]?.id || '';
+      
+      const list = getSubjectList();
+      const firstSubject = list[0]?.id || '';
+      
+      setFormData(prev => ({ ...prev, fase: firstPhase, kelas: firstClass, mapel: firstSubject }));
+    } else {
+      const classes = phaseClassMap[formData.jenjang]?.classes[formData.fase] || [];
+      if (!classes.find(c => c.id === formData.kelas)) {
+        setFormData(prev => ({ ...prev, kelas: classes[0]?.id || '' }));
+      }
+    }
+  }, [formData.jenjang, formData.fase]);
 
   useEffect(() => {
     if (profile) {
@@ -121,26 +185,32 @@ export default function WorksheetGenerator() {
 
       const ai = new GoogleGenAI({ apiKey });
       
-      const subjectLabel = subjectsByLevel[formData.jenjang]?.find(s => s.id === formData.mapel)?.label || formData.mapel;
+      const allSubjects = [...(subjectsByLevel[formData.jenjang] || []), ...anSubjects, ...(olympiadSubjectsByLevel[formData.jenjang] || [])];
+      const subjectLabel = allSubjects.find(s => s.id === formData.mapel)?.label || formData.mapel;
       const faseLabel = phaseClassMap[formData.jenjang]?.phases.find(p => p.id === formData.fase)?.label || formData.fase;
       const kelasLabel = phaseClassMap[formData.jenjang]?.classes[formData.fase]?.find(c => c.id === formData.kelas)?.label || formData.kelas;
       const jenjangLabel = educationLevels.find(l => l.id === formData.jenjang)?.label || formData.jenjang;
+      const mapelDescription = mapelDescriptions[formData.mapel] || '';
+
+      const detailSoalInfo = formData.bentukSoal.includes('Kombinasi') 
+        ? `Bentuk Soal: Kombinasi (${formData.jumlahSoalTotal} soal total)` 
+        : `Bentuk Soal: ${formData.bentukSoal.map(b => `${b} (${formData.jumlahSoalPerBentuk[b] || 0} soal)`).join(', ')}`;
 
       const prompt = `Buatkan Lembar Kerja Peserta Didik (LKPD) / Worksheet edukatif untuk:
 Jenjang: ${jenjangLabel}
 Fase/Kelas: ${faseLabel} / ${kelasLabel}
 Mata Pelajaran: ${subjectLabel}
+Deskripsi Mapel: ${mapelDescription}
+Tipe Ujian: ${formData.tipeUjian}
 Topik/Materi: ${formData.topik}
-Jenis Soal: ${formData.jenisSoal}
-Jumlah Soal: ${formData.jumlahSoal}
-Tingkat Kesulitan: ${formData.tingkatKesulitan}
-Tingkatan Kognitif (Taksonomi Bloom Revisi): ${formData.tingkatanKognitif}
+${detailSoalInfo}
+Level Kognitif: ${formData.levelKognitif.join(', ')}
 Instruksi Tambahan: ${formData.instruksiTambahan || 'Tidak ada'}
 
-${formData.remixText ? `INSTRUKSI REMIX:
+${formData.remixData?.type === 'text' ? `INSTRUKSI REMIX:
 Gunakan teks referensi berikut sebagai dasar utama pembuatan Worksheet. Remix dan kembangkan konten ini agar sesuai dengan kurikulum merdeka dan target audiens di atas:
 ---
-${formData.remixText}
+${formData.remixData.content}
 ---` : ''}
 
 Konteks Kurikulum Merdeka & Pedagogi:
@@ -152,6 +222,13 @@ Konteks Kurikulum Merdeka & Pedagogi:
    - JANGAN tampilkan label (C1, C2, dll) pada hasil akhir, cukup gunakan KKO yang tepat.
 2. Tujuan Pembelajaran (ABCD): Jika memungkinkan, formulasikan instruksi/tujuan dengan prinsip Audience (Peserta didik), Behavior (Perilaku/KKO), Condition (Kondisi pembelajaran), dan Degree (Kriteria keberhasilan).
 3. TPACK & STEAM: Integrasikan pendekatan Technological Pedagogical Content Knowledge (TPACK) dan Science, Technology, Engineering, Art, Mathematics (STEAM) dalam rancangan kegiatan atau soal jika relevan.
+4. KELENGKAPAN WORKSHEET (PENTING):
+   Di bagian paling akhir worksheet, tambahkan bagian-bagian berikut (sebaiknya berikan page break atau pemisah yang jelas agar bisa dipisah oleh guru):
+   a. Kunci Jawaban (Sesuai dengan bentuk soal dan level kognitif).
+   b. Pedoman/Skor Penilaian (Rubrik penilaian rinci untuk setiap soal dan total skor).
+   c. Program Remedial (Aktivitas atau soal tambahan untuk siswa yang belum mencapai Kriteria Ketercapaian Tujuan Pembelajaran).
+   d. Program Pengayaan (Aktivitas atau materi pendalaman untuk siswa yang sudah melampaui capaian pembelajaran).
+   Gunakan source referensi atau teks remix yang ada sesuai dengan mata pelajaran dan topik untuk membuat bagian-bagian ini secara terintegrasi.
 
 Instruksi Desain (SANGAT PENTING - GUNAKAN STRUKTUR INFOGRAFIK INI):
 ${INFOGRAPHIC_BASE_PROMPT}
@@ -164,9 +241,20 @@ Pastikan desainnya sangat menarik, interaktif, dan mengikuti struktur grid 40/60
 Gunakan elemen HTML seperti <input type="text"> untuk isian, <input type="radio"> untuk pilihan ganda, dll.
 Jangan gunakan markdown \`\`\`html, langsung kembalikan string HTML-nya saja tanpa embel-embel teks lain.`;
 
+      const contentsParts: any[] = [{ text: prompt }];
+
+      if (formData.remixData && formData.remixData.type === 'inline') {
+        contentsParts.push({
+          inlineData: {
+            data: formData.remixData.content,
+            mimeType: formData.remixData.mimeType
+          }
+        });
+      }
+
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: prompt,
+        contents: contentsParts,
       });
 
       let htmlContent = response.text || '';
@@ -196,70 +284,104 @@ Jangan gunakan markdown \`\`\`html, langsung kembalikan string HTML-nya saja tan
           <script src="https://cdn.tailwindcss.com"></script>
           <style>
               @page {
-                size: A4;
-                margin: 0;
-              }
-              @media print {
-                  body { 
-                    -webkit-print-color-adjust: exact; 
-                    print-color-adjust: exact; 
-                    margin: 0;
-                    padding: 5mm;
-                  }
-                  .no-print { display: none; }
-                  .page-break { page-break-before: always; }
-                  .content-wrapper {
-                    max-width: 100% !important;
-                    padding: 0 !important;
-                    margin: 0 !important;
-                    zoom: 0.85;
-                  }
+                size: A4 portrait;
+                margin: 2.54cm !important;
               }
               body {
-                font-family: 'Inter', sans-serif;
-                background: white;
-                position: relative;
-                min-height: 100vh;
-                margin: 0;
-                padding: 0;
+                font-family: Arial, sans-serif;
+                color: #000;
               }
-              .watermark {
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%) rotate(-45deg);
-                font-size: 5vw;
-                color: rgba(0, 0, 0, 0.05);
-                white-space: nowrap;
-                pointer-events: none;
-                z-index: -1;
-                font-weight: bold;
-                text-transform: uppercase;
+              @media print {
+                
+                html, body {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  overflow-x: hidden !important;
+                }
+                
+                html, body {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  overflow-x: hidden !important;
+                }
+                body { -webkit-print-color-adjust: exact !important; 
+                  print-color-adjust: exact !important; 
+                  padding: 0 !important; 
+                  margin: 0 !important; 
+                  width: 100% !important;
+                  max-width: 100% !important;
+                }
+                .no-print { display: none !important; } 
+
+                /* Advanced Table Printing Resets */
+                table, table * {
+                  white-space: normal !important;
+                }
+                [class*="min-w-"], [class*="w-max"], [class*="whitespace-nowrap"] {
+                  min-width: 0 !important;
+                  white-space: normal !important;
+                }
+                .whitespace-nowrap {
+                  white-space: normal !important;
+                }
+  
+                
+                table {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  table-layout: fixed !important;
+                  page-break-inside: auto !important;
+                  border-collapse: collapse !important;
+
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  table-layout: fixed !important;
+                  page-break-inside: auto !important;
+                  border-collapse: collapse !important;
+
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  min-width: 0 !important;
+                  border-collapse: collapse !important;
+                  table-layout: fixed !important;
+                  page-break-inside: auto !important;
+                }
+                tr {
+                  page-break-inside: avoid !important;
+                  page-break-after: auto !important;
+                }
+                th, td { word-wrap: break-word !important; border: 1px solid #777 !important; padding: 10px !important;
+                  word-break: break-word !important;
+                  overflow-wrap: break-word !important;
+                  white-space: normal !important;
+                }
+                th { width: 25% !important; }
+                
+                /* Reset tailwind's overflow properties which cut off content */
+                .overflow-x-auto, .overflow-y-auto, .overflow-auto {
+                  overflow: visible !important;
+                  min-width: 0 !important;
+                }
+
+                .min-w-\[800px\] {
+                  min-width: 0 !important;
+                }
+                
+                img {
+                  max-width: 100% !important;
+                  height: auto !important;
+                }
+                
+                pre, code, p {
+                  white-space: pre-wrap !important;
+                  word-break: break-word !important;
+                }
               }
-              .content-wrapper {
-                width: 100%;
-                max-width: 210mm;
-                margin: 0 auto;
-                padding: 15mm;
-                box-sizing: border-box;
-              }
-              .support-footer {
-                margin-top: 40px;
-                padding-top: 20px;
-                border-top: 2px solid #eee;
-                text-align: center;
-                font-size: 11px;
-                color: #666;
-              }
-              .support-links {
-                margin-top: 8px;
-                display: flex;
-                justify-content: center;
-                gap: 15px;
-                font-weight: bold;
-                color: #2563eb;
-              }
-          </style>
+            </style>
       </head>
       <body>
           <div class="watermark">PEMURYADI - MAJU PENDIDIKAN INDONESIA</div>
@@ -349,12 +471,25 @@ Jangan gunakan markdown \`\`\`html, langsung kembalikan string HTML-nya saja tan
                 </select>
               </div>
               <div className="col-span-2 md:col-span-1">
+                <label className="block text-sm font-medium text-slate-300 mb-2">Tipe Ujian</label>
+                <select value={formData.tipeUjian} onChange={e => setFormData({...formData, tipeUjian: e.target.value})} className="w-full bg-slate-800 border border-slate-600 rounded-xl p-3 text-white focus:border-blue-500 transition-all">
+                  <option value="Ujian Biasa">Ujian Biasa</option>
+                  <option value="Asesmen Nasional">Asesmen Nasional</option>
+                  <option value="Olimpiade">Olimpiade</option>
+                </select>
+              </div>
+              <div className="col-span-2 md:col-span-1">
                 <label className="block text-sm font-medium text-slate-300 mb-2">Mata Pelajaran</label>
                 <select value={formData.mapel} onChange={e => setFormData({...formData, mapel: e.target.value})} className="w-full bg-slate-800 border border-slate-600 rounded-xl p-3 text-white focus:border-blue-500 transition-all">
-                  {subjectsByLevel[formData.jenjang]?.map(s => (
+                  {getSubjectList().map(s => (
                     <option key={s.id} value={s.id}>{s.label}</option>
                   ))}
                 </select>
+                {mapelDescriptions[formData.mapel] && (
+                  <p className="mt-1 text-[10px] text-blue-400/80 italic leading-tight">
+                    {mapelDescriptions[formData.mapel]}
+                  </p>
+                )}
               </div>
               <div className="col-span-2">
                 <label className="block text-sm font-medium text-slate-300 mb-2">Topik / Materi Pembelajaran</label>
@@ -365,51 +500,69 @@ Jangan gunakan markdown \`\`\`html, langsung kembalikan string HTML-nya saja tan
 
           <div className="gen-card bg-slate-800/50 rounded-xl p-5 shadow-sm">
             <h4 className="font-semibold text-blue-400 mb-4 flex items-center gap-2">📝 Detail Soal</h4>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2 md:col-span-1">
-                <label className="block text-sm font-medium text-slate-300 mb-2">Jenis Soal</label>
-                <select value={formData.jenisSoal} onChange={e => setFormData({...formData, jenisSoal: e.target.value})} className="w-full bg-slate-800 border border-slate-600 rounded-xl p-3 text-white focus:border-blue-500 transition-all">
-                  <option value="Pilihan Ganda">Pilihan Ganda</option>
-                  <option value="Isian Singkat">Isian Singkat</option>
-                  <option value="Esai">Esai</option>
-                  <option value="Benar/Salah">Benar/Salah</option>
-                  <option value="Menjodohkan">Menjodohkan</option>
-                </select>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">Bentuk Soal</label>
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+                  {['Pilihan Ganda', 'Pilihan Ganda Kompleks', 'Benar Salah', 'Menjodohkan', 'Isian Singkat', 'Uraian', 'Essay', 'Kombinasi'].map(bentuk => (
+                    <div key={bentuk} className="flex flex-col gap-1">
+                      <label className="flex items-center gap-2 cursor-pointer bg-slate-800/50 p-2 rounded border border-slate-700 hover:border-blue-500/30 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={formData.bentukSoal.includes(bentuk)}
+                          onChange={() => handleBentukSoalChange(bentuk)}
+                          className="w-4 h-4 rounded border-slate-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-900 bg-slate-900"
+                        />
+                        <span className="text-[11px] text-slate-300">{bentuk}</span>
+                      </label>
+                      {formData.bentukSoal.includes(bentuk) && bentuk !== 'Kombinasi' && (
+                        <input 
+                          type="number" 
+                          min="1" 
+                          value={formData.jumlahSoalPerBentuk[bentuk] || ''} 
+                          onChange={e => setFormData({...formData, jumlahSoalPerBentuk: {...formData.jumlahSoalPerBentuk, [bentuk]: parseInt(e.target.value) || 0}})} 
+                          placeholder="Jumlah Soal"
+                          className="w-full p-1.5 text-xs border border-slate-700 rounded bg-slate-800 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" 
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="col-span-2 md:col-span-1">
-                <label className="block text-sm font-medium text-slate-300 mb-2">Jumlah Soal</label>
-                <input type="number" min="1" max="20" value={formData.jumlahSoal} onChange={e => setFormData({...formData, jumlahSoal: parseInt(e.target.value) || 5})} className="w-full bg-slate-800 border border-slate-600 rounded-xl p-3 text-white text-sm focus:border-blue-500 transition-all" />
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">Level Kognitif</label>
+                <div className="grid grid-cols-3 lg:grid-cols-4 gap-2">
+                  {['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'HOTS', 'Kombinasi'].map(lvl => (
+                    <label key={lvl} className="flex items-center gap-2 cursor-pointer bg-slate-800/50 p-2 rounded border border-slate-700 hover:border-blue-500/30 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={formData.levelKognitif.includes(lvl)}
+                        onChange={() => handleLevelKognitifChange(lvl)}
+                        className="w-4 h-4 rounded border-slate-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-900 bg-slate-900"
+                      />
+                      <span className="text-[11px] text-slate-300">{lvl}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
-              <div className="col-span-2 md:col-span-1">
-                <label className="block text-sm font-medium text-slate-300 mb-2">Tingkat Kesulitan</label>
-                <select value={formData.tingkatKesulitan} onChange={e => setFormData({...formData, tingkatKesulitan: e.target.value})} className="w-full bg-slate-800 border border-slate-600 rounded-xl p-3 text-white focus:border-blue-500 transition-all">
-                  <option value="Mudah (LOTS)">Mudah (LOTS)</option>
-                  <option value="Sedang (MOTS)">Sedang (MOTS)</option>
-                  <option value="Sulit (HOTS)">Sulit (HOTS)</option>
-                  <option value="Campuran">Campuran</option>
-                </select>
-              </div>
-              <div className="col-span-2 md:col-span-1">
-                <label className="block text-sm font-medium text-slate-300 mb-2">Tingkatan Kognitif (Taksonomi Bloom)</label>
-                <select value={formData.tingkatanKognitif} onChange={e => setFormData({...formData, tingkatanKognitif: e.target.value})} className="w-full bg-slate-800 border border-slate-600 rounded-xl p-3 text-white focus:border-blue-500 transition-all">
-                  <option value="C1: Mengingat (Remembering)">C1: Mengingat (Remembering)</option>
-                  <option value="C2: Memahami (Understanding)">C2: Memahami (Understanding)</option>
-                  <option value="C3: Menerapkan (Applying)">C3: Menerapkan (Applying)</option>
-                  <option value="C4: Menganalisis (Analyzing)">C4: Menganalisis (Analyzing)</option>
-                  <option value="C5: Mengevaluasi (Evaluating)">C5: Mengevaluasi (Evaluating)</option>
-                  <option value="C6: Menciptakan (Creating)">C6: Menciptakan (Creating)</option>
-                  <option value="Campuran (Sesuai Kurikulum Merdeka)">Campuran (Sesuai Kurikulum Merdeka)</option>
-                </select>
-              </div>
-              <div className="col-span-2">
-                <label className="block text-sm font-medium text-slate-300 mb-2">Instruksi Tambahan (Opsional)</label>
+
+              {formData.bentukSoal.includes('Kombinasi') && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase tracking-wider">Total Jumlah Soal (Kombinasi)</label>
+                  <input type="number" min="1" max="100" value={formData.jumlahSoalTotal} onChange={e => setFormData({...formData, jumlahSoalTotal: parseInt(e.target.value) || 1})} className="w-full p-2.5 border border-slate-700 rounded-lg text-sm bg-slate-800 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2 mt-4">Instruksi Tambahan (Opsional)</label>
                 <textarea rows={2} placeholder="Contoh: Buat soal yang berkaitan dengan kehidupan sehari-hari siswa di daerah pesisir." value={formData.instruksiTambahan} onChange={e => setFormData({...formData, instruksiTambahan: e.target.value})} className="w-full bg-slate-800 border border-slate-600 rounded-xl p-3 text-white text-sm focus:border-blue-500 transition-all" />
               </div>
 
-              <div className="col-span-2">
+              <div>
                 <PDFRemixUpload 
-                  onTextExtracted={(text) => setFormData(prev => ({ ...prev, remixText: text }))}
-                  label="Remix dari PDF (Opsional)"
+                  onDataExtracted={(data) => setFormData(prev => ({ ...prev, remixData: data }))}
+                  label="Remix dari Dokumen (Opsional)"
                 />
               </div>
             </div>
@@ -461,12 +614,20 @@ Jangan gunakan markdown \`\`\`html, langsung kembalikan string HTML-nya saja tan
           {result ? (
             <div className="space-y-6 text-sm">
               <div className="flex flex-col items-end gap-2">
-                <button 
-                  onClick={() => setIsPrintModalOpen(true)}
-                  className="px-6 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold transition-all shadow-lg flex items-center gap-2"
-                >
-                  <span>🖨️</span> Print Worksheet
-                </button>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => setIsFullscreen(true)}
+                    className="px-6 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold transition-all shadow-lg flex items-center gap-2"
+                  >
+                    <span>🖥️</span> Fullscreen
+                  </button>
+                  <button 
+                    onClick={() => setIsPrintModalOpen(true)}
+                    className="px-6 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold transition-all shadow-lg flex items-center gap-2"
+                  >
+                    <span>🖨️</span> Print Worksheet
+                  </button>
+                </div>
                 <p className="text-[10px] text-slate-500 italic text-right">
                   * Gunakan Chrome di Desktop untuk hasil terbaik. Di mobile, gunakan "Simpan sebagai PDF".<br/>
                   * Jangan lupa support saya agar makin berusaha dalam memperbaiki website ini.
@@ -491,6 +652,31 @@ Jangan gunakan markdown \`\`\`html, langsung kembalikan string HTML-nya saja tan
         onClose={() => setIsPrintModalOpen(false)} 
         onConfirm={printWorksheet} 
       />
+
+      {isFullscreen && result && (
+        <div className="fixed inset-0 z-50 bg-slate-900/95 flex flex-col p-4 overflow-hidden">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-bold text-white">Worksheet Preview</h3>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => setIsPrintModalOpen(true)}
+                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold transition-all shadow-lg flex items-center gap-2"
+              >
+                <span>🖨️</span> Print
+              </button>
+              <button 
+                onClick={() => setIsFullscreen(false)}
+                className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-bold transition-all shadow-lg flex items-center gap-2"
+              >
+                <span>❌</span> Tutup
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 bg-white rounded-xl overflow-y-auto shadow-inner p-8 custom-scrollbar">
+            <div dangerouslySetInnerHTML={{ __html: result }} className="max-w-[21cm] mx-auto bg-white min-h-[29.7cm] shadow-sm" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { GoogleGenAI, Type } from '@google/genai';
-import { educationLevels, phaseClassMap, subjectsByLevel, cpData } from '../constants';
-import { Loader2, FileText, List, Printer, AlertTriangle, Lightbulb, Sparkles, Save } from 'lucide-react';
+import { educationLevels, phaseClassMap, subjectsByLevel, cpData, anSubjects, olympiadSubjectsByLevel, mapelDescriptions, topicsBySubject } from '../constants';
+import { Loader2, FileText, List, Printer, AlertTriangle, Lightbulb, Sparkles, Save, Image as ImageIcon } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import { getWatermarkHtml } from '../utils/print';
 import PrintSupportModal from './PrintSupportModal';
+import PDFRemixUpload from './PDFRemixUpload';
 
 export default function BuatSoal() {
   const { profile, consumeToken } = useAuth();
@@ -12,8 +13,16 @@ export default function BuatSoal() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [printTypeToProceed, setPrintTypeToProceed] = useState<'kisi-kisi' | 'naskah' | 'kunci' | 'kartu' | null>(null);
+  const resultRef = React.useRef<HTMLDivElement>(null);
   
   const [error, setError] = useState('');
+  const [generatedImages, setGeneratedImages] = useState<Record<string, string>>({});
+
+  const handleGenerateImage = (prompt: string, id: string) => {
+    const seed = Math.floor(Math.random() * 1000000);
+    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?seed=${seed}&width=800&height=400&nologo=true`;
+    setGeneratedImages(prev => ({ ...prev, [id]: imageUrl }));
+  };
   
   const [formData, setFormData] = useState<{
     jenjang: string;
@@ -32,6 +41,9 @@ export default function BuatSoal() {
     hasInklusi: boolean;
     jumlahInklusi: number;
     abkKategori: string;
+    remixText: string;
+    remixData: { type: 'text' | 'inline', content: string, mimeType?: string } | null;
+    remixUrl?: string;
   }>({
     jenjang: '',
     fase: '',
@@ -48,7 +60,10 @@ export default function BuatSoal() {
     jumlahSoalPerBentuk: { 'Pilihan Ganda': 10 },
     hasInklusi: false,
     jumlahInklusi: 0,
-    abkKategori: ''
+    abkKategori: '',
+    remixText: '',
+    remixData: null,
+    remixUrl: ''
   });
 
   const handleBentukSoalChange = (bentuk: string) => {
@@ -92,6 +107,19 @@ export default function BuatSoal() {
   const [resultKisiKisi, setResultKisiKisi] = useState<any>(null);
   const [resultSoal, setResultSoal] = useState<any>(null);
 
+  const getSubjectList = () => {
+    if (formData.tipeUjian === 'Asesmen Nasional') return anSubjects;
+    if (formData.tipeUjian === 'Olimpiade') return olympiadSubjectsByLevel[formData.jenjang] || [];
+    return subjectsByLevel[formData.jenjang] || [];
+  };
+
+  useEffect(() => {
+    const list = getSubjectList();
+    if (list.length > 0 && !list.find(s => s.id === formData.mapel)) {
+      setFormData(prev => ({ ...prev, mapel: list[0].id }));
+    }
+  }, [formData.tipeUjian, formData.jenjang]);
+
   useEffect(() => {
     const phases = phaseClassMap[formData.jenjang]?.phases || [];
     if (!phases.find(p => p.id === formData.fase)) {
@@ -129,7 +157,9 @@ export default function BuatSoal() {
       const ai = new GoogleGenAI({ apiKey });
       
       const jenjangLabel = educationLevels.find(l => l.id === formData.jenjang)?.label || formData.jenjang;
-      const mapelLabel = subjectsByLevel[formData.jenjang]?.find(s => s.id === formData.mapel)?.label || formData.mapel;
+      const allSubjects = [...(subjectsByLevel[formData.jenjang] || []), ...anSubjects, ...(olympiadSubjectsByLevel[formData.jenjang] || [])];
+      const mapelLabel = allSubjects.find(s => s.id === formData.mapel)?.label || formData.mapel;
+      const mapelDescription = mapelDescriptions[formData.mapel] || '';
       const cp = getCP();
 
       const hasTokens = await consumeToken();
@@ -138,7 +168,6 @@ export default function BuatSoal() {
       }
 
       let prompt = '';
-      let responseSchema: any = {};
 
       let totalSoal = 0;
       let breakdownSoal = '';
@@ -150,9 +179,17 @@ export default function BuatSoal() {
          breakdownSoal = `Jumlah Soal: ${formData.bentukSoal.map(b => `${b} (${formData.jumlahSoalPerBentuk[b] || 0})`).join(', ')}. Total: ${totalSoal} Soal.`;
       }
 
+      const userTier = profile?.tier || profile?.role || 'Free';
+      const isFreeTier = userTier === 'Free' || userTier === 'guest';
+      const maxSoalUser = isFreeTier ? 25 : 50;
+      if (totalSoal > maxSoalUser) {
+        throw new Error(`Batas maksimal untuk akun Anda adalah ${maxSoalUser} soal. Anda mencoba membuat ${totalSoal} soal. Silakan kurangi jumlah soal atau upgrade akun Anda.`);
+      }
+
       if (type === 'kisi-kisi') {
         prompt = `Buatkan Kisi-kisi Soal untuk:
 Mata Pelajaran: ${mapelLabel}
+Deskripsi: ${mapelDescription}
 Jenjang: ${jenjangLabel}
 Fase/Kelas/Semester: ${formData.fase} / ${formData.kelas} / ${formData.semester}
 Tipe Ujian: ${formData.tipeUjian}
@@ -162,13 +199,14 @@ Indikator Asesmen: ${formData.indikator}
 Bentuk Soal: ${formData.bentukSoal.join(', ')}
 Level Kognitif: ${formData.levelKognitif.join(', ')}
 ${breakdownSoal}
-${formData.hasInklusi ? `Terdapat Anak Inklusi: Ya, berjumlah ${formData.jumlahInklusi} siswa. Pastikan hasil generate menyediakan adaptasi atau modifikasi untuk anak inklusi.` : ''}
+${formData.remixData?.type === 'text' ? `Referensi Dokumen Konteks:\n${formData.remixData.content}\n\n` : ''}${formData.remixUrl ? `Referensi Link/URL Konteks:\n${formData.remixUrl}\n(Mohon telusuri/gunakan referensi pada link di atas untuk menyusun soal)\n\n` : ''}${formData.hasInklusi ? `Terdapat Anak Inklusi: Ya, kategori ${formData.abkKategori} berjumlah ${formData.jumlahInklusi} siswa. Pastikan hasil generate menyediakan adaptasi atau modifikasi untuk anak inklusi tersebut.` : ''}
 
 PENTING:
 - Selaraskan dengan CP. Tujuan Pembelajaran (TP) diturunkan dari CP.
 - Gunakan indikator yang mencerminkan proses berpikir tingkat tinggi (HOTS) jika dipilih.
 - Kaitkan soal dengan konteks nyata (meaningful learning).
 - Jika Asesmen Nasional/Olimpiade, pastikan kisi-kisi memuat indikator stimulus (literasi/numerasi) dan soal menantang HOTS.
+- WAJIB MENGHASILKAN KISI-KISI SEJUMLAH: ${totalSoal} baris kisi-kisi, MESKIPUN input materi/indikator kosong (gunakan pengetahuan generik sesuai materi pelajaran).
 
 Berikan output dalam format JSON murni:
 {
@@ -185,30 +223,10 @@ Berikan output dalam format JSON murni:
     }
   ]
 }`;
-        responseSchema = {
-          type: Type.OBJECT,
-          properties: {
-            tujuanPembelajaran: { type: Type.STRING },
-            kisiKisi: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  elemen: { type: Type.STRING },
-                  tujuanPembelajaran: { type: Type.STRING },
-                  materi: { type: Type.STRING },
-                  levelKognitif: { type: Type.STRING },
-                  indikatorSoal: { type: Type.STRING },
-                  jenisSoal: { type: Type.STRING },
-                  noSoal: { type: Type.STRING }
-                }
-              }
-            }
-          }
-        };
       } else {
         prompt = `Buatkan Soal beserta Kunci Jawabannya untuk:
 Mata Pelajaran: ${mapelLabel}
+Deskripsi: ${mapelDescription}
 Jenjang: ${jenjangLabel}
 Fase/Kelas/Semester: ${formData.fase} / ${formData.kelas} / ${formData.semester}
 Tipe Ujian: ${formData.tipeUjian}
@@ -218,13 +236,20 @@ Indikator Asesmen: ${formData.indikator}
 Bentuk Soal: ${formData.bentukSoal.join(', ')}
 Level Kognitif: ${formData.levelKognitif.join(', ')}
 Rincian Target Reguler: ${breakdownSoal}
-
+${formData.remixData?.type === 'text' ? `Referensi Dokumen Konteks:\n${formData.remixData.content}\n\n` : ''}${formData.remixUrl ? `Referensi Link/URL Konteks:\n${formData.remixUrl}\n(Mohon telusuri/gunakan referensi pada link di atas untuk menyusun soal)\n\n` : ''}
 PENTING:
-- PENCARIAN REAL-TIME & GAMBAR: Kamu harus melampirkan referensi data riil, kasus aktual, atau gambar/ilustrasi pendukung yang sedang tren di search dari 2023 - 2025. Sebutkan bahwa source dukungan berasal dari "Source Nano Banana 2". Kamu bisa menggunakan URL gambar edukasi dari Wikimedia atau gambar simulasi pakai Markdown ![Ilustrasi](url).
-- PEMBAGIAN SOAL: Kamu WAJIB memisahkan soal menjadi 2 bagian dalam JSON:
+- EFISIENSI TOKEN (SANGAT KRITIS): Terdapat batas limit output (8192 token). Anda wajib menghasilkan ${totalSoal} soal tanpa terpotong. Untuk menghemat kuota karakter:
+  1. Buat "pertanyaan" sesingkat mungkin langsung ke inti.
+  2. "opsiTambahan" singkat padat.
+  3. Kosongkan ("") field "pembahasan" jika total soal lebih dari 20. Jika kurang dari 20, tulis maksimal 1 kalimat pendek.
+  4. Kosongkan ("") field "imagePrompt" jika total soal lebih dari 30.
+- PENCARIAN REAL-TIME & GAMBAR: Kamu harus melampirkan referensi data riil, kasus aktual, atau gambar/ilustrasi pendukung yang sedang tren di search dari 2023 - 2025. Kamu bisa menggunakan URL gambar edukasi dari Wikimedia atau gambar simulasi pakai Markdown ![Ilustrasi](url). Buatkan juga properti "imagePrompt" dalam JSON untuk setiap soal yang berisi deskripsi prompt gambar bahasa Inggris untuk men-generate ilustrasi/gambar pendukung soal tersebut (jika relevan).
+${formData.hasInklusi ? `- PEMBAGIAN SOAL: Kamu WAJIB memisahkan soal menjadi 2 bagian dalam JSON:
   1. "soalList": Berisi soal Reguler sesuai jumlah target pengunjung.
-  2. "soalABKList": Berisi anak inklusi / ABK (Anak Berkebutuhan Khusus). Buatkan modifikasi dari soal reguler (misal: bahasanya disederhanakan, lebih banyak butir visual langsung) MAKSIMAL 20 soal. Semua soal ABK ini dimasukkan ke array "soalABKList".
+  2. "soalABKList": Berisi soal untuk anak inklusi / ABK (Anak Berkebutuhan Khusus) kategori ${formData.abkKategori}. Buatkan modifikasi dari soal reguler (misal: bahasanya disederhanakan, lebih banyak butir visual langsung) sebanyak ${formData.jumlahInklusi} soal. Semua soal ABK ini dimasukkan ke array "soalABKList".`
+: `- PEMBAGIAN SOAL: Hasil generate soal HANYA diletakkan di dalam array "soalList".`}
 - Tipe Ujian Asesmen Nasional/Olimpiade wajib pakai stimulus konteks spesifik dari berita real-time kalau memungkinkan.
+- WAJIB MENGHASILKAN SOAL SEJUMLAH: ${totalSoal} butir soal, MESKIPUN input materi/indikator/referensi kosong (gunakan pengetahuan generik sesuai materi pelajaran).
 
 Berikan output dalam format JSON murni:
 {
@@ -240,65 +265,35 @@ Berikan output dalam format JSON murni:
       "skor": "...",
       "materi": "...",
       "indikatorSoal": "...",
-      "levelKognitif": "..." 
+      "levelKognitif": "...",
+      "imagePrompt": "..."
     }
   ],
   "soalABKList": [
     {
-      "jenisSoal": "...", "no": "...", "pertanyaan": "...", "opsiTambahan": [], "pasanganMenjodohkan": [], "kunci": "...", "pembahasan": "...", "skor": "...", "materi": "...", "indikatorSoal": "...", "levelKognitif": "..." 
+      "jenisSoal": "...", "no": "...", "pertanyaan": "...", "opsiTambahan": [], "pasanganMenjodohkan": [], "kunci": "...", "pembahasan": "...", "skor": "...", "materi": "...", "indikatorSoal": "...", "levelKognitif": "...", "imagePrompt": "..."
     }
   ]
 }`;
-        responseSchema = {
-          type: Type.OBJECT,
-          properties: {
-            soalList: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  jenisSoal: { type: Type.STRING },
-                  no: { type: Type.STRING },
-                  pertanyaan: { type: Type.STRING },
-                  opsiTambahan: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  pasanganMenjodohkan: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { kiri: { type: Type.STRING }, kanan: { type: Type.STRING } } } },
-                  kunci: { type: Type.STRING },
-                  pembahasan: { type: Type.STRING },
-                  skor: { type: Type.STRING },
-                  materi: { type: Type.STRING },
-                  indikatorSoal: { type: Type.STRING },
-                  levelKognitif: { type: Type.STRING }
-                }
-              }
-            },
-            soalABKList: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  jenisSoal: { type: Type.STRING },
-                  no: { type: Type.STRING },
-                  pertanyaan: { type: Type.STRING },
-                  opsiTambahan: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  pasanganMenjodohkan: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { kiri: { type: Type.STRING }, kanan: { type: Type.STRING } } } },
-                  kunci: { type: Type.STRING },
-                  pembahasan: { type: Type.STRING },
-                  skor: { type: Type.STRING },
-                  materi: { type: Type.STRING },
-                  indikatorSoal: { type: Type.STRING },
-                  levelKognitif: { type: Type.STRING }
-                }
-              }
-            }
+      }
+
+      const contentsParts: any[] = [{ text: prompt }];
+
+      if (formData.remixData && formData.remixData.type === 'inline') {
+        contentsParts.push({
+          inlineData: {
+            data: formData.remixData.content,
+            mimeType: formData.remixData.mimeType
           }
-        };
+        });
       }
 
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: prompt,
+        contents: contentsParts,
         config: {
           tools: [{ googleSearch: {} }],
+          responseMimeType: 'application/json'
         }
       });
 
@@ -312,6 +307,13 @@ Berikan output dalam format JSON murni:
         setResultKisiKisi({ ...generatedData, meta: { mapelLabel, jenjangLabel, ...formData } });
       } else {
         setResultSoal({ ...generatedData, meta: { mapelLabel, jenjangLabel, ...formData } });
+      }
+
+      // Scroll to result on mobile
+      if (window.innerWidth < 1024) {
+        setTimeout(() => {
+          resultRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
       }
 
     } catch (err: any) {
@@ -362,30 +364,200 @@ Berikan output dalam format JSON murni:
         <head>
           <title>Cetak ${type.toUpperCase()}</title>
           <style>
-            body { font-family: 'Times New Roman', Times, serif; line-height: 1.5; padding: 2cm; color: black; }
-            h1, h2, h3 { text-align: center; margin-bottom: 5px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th, td { border: 1px solid black; padding: 8px; text-align: left; vertical-align: top; }
-            th { background-color: #f2f2f2; text-align: center; }
-            .header-info { margin-bottom: 20px; }
-            .header-info table { border: none; margin-top: 0; }
-            .header-info td { border: none; padding: 4px; }
-            .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 100px; color: rgba(0,0,0,0.05); z-index: -1; white-space: nowrap; pointer-events: none; }
-            .kartu-soal-box { border: 1px solid black; margin-bottom: 30px; page-break-inside: avoid; }
-            .kartu-header { text-align: center; font-weight: bold; border-bottom: 1px solid black; padding: 5px; }
-            .kartu-body { display: flex; }
-            .kartu-left { width: 30%; border-right: 1px solid black; padding: 10px; font-size: 12px; }
-            .kartu-right { width: 70%; padding: 10px; font-size: 14px; }
-            @media print {
-              @page { margin: 1cm; }
-              body { padding: 0; }
-            }
-          </style>
+              @page {
+                size: A4 portrait;
+                margin: 2.54cm !important;
+              }
+              body {
+                font-family: Arial, sans-serif;
+                color: #000;
+              }
+              @media print {
+                
+                html, body {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  overflow-x: hidden !important;
+                }
+                
+                html, body {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  overflow-x: hidden !important;
+                }
+                body { -webkit-print-color-adjust: exact !important; 
+                  print-color-adjust: exact !important; 
+                  padding: 0 !important; 
+                  margin: 0 !important; 
+                  width: 100% !important;
+                  max-width: 100% !important;
+                }
+                .no-print { display: none !important; } 
+
+                /* Advanced Table Printing Resets */
+                table, table * {
+                  white-space: normal !important;
+                }
+                [class*="min-w-"], [class*="w-max"], [class*="whitespace-nowrap"] {
+                  min-width: 0 !important;
+                  white-space: normal !important;
+                }
+                .whitespace-nowrap {
+                  white-space: normal !important;
+                }
+  
+                
+                table {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  table-layout: fixed !important;
+                  page-break-inside: auto !important;
+                  border-collapse: collapse !important;
+
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  table-layout: fixed !important;
+                  page-break-inside: auto !important;
+                  border-collapse: collapse !important;
+
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  min-width: 0 !important;
+                  border-collapse: collapse !important;
+                  table-layout: fixed !important;
+                  page-break-inside: auto !important;
+                }
+                tr {
+                  page-break-inside: avoid !important;
+                  page-break-after: auto !important;
+                }
+                th, td { word-wrap: break-word !important; border: 1px solid #777 !important; padding: 10px !important;
+                  word-break: break-word !important;
+                  overflow-wrap: break-word !important;
+                  white-space: normal !important;
+                }
+                th { width: 25% !important; }
+                
+                /* Reset tailwind's overflow properties which cut off content */
+                .overflow-x-auto, .overflow-y-auto, .overflow-auto {
+                  overflow: visible !important;
+                  min-width: 0 !important;
+                }
+
+                .min-w-\[800px\] {
+                  min-width: 0 !important;
+                }
+                
+                img {
+                  max-width: 100% !important;
+                  height: auto !important;
+                }
+                
+                pre, code, p {
+                  white-space: pre-wrap !important;
+                  word-break: break-word !important;
+                }
+              }
+              
+              .header-info {
+                margin-bottom: 20px;
+                font-weight: bold;
+              }
+              .header-info table {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  table-layout: fixed !important;
+                  page-break-inside: auto !important;
+                  border-collapse: collapse !important;
+
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  table-layout: fixed !important;
+                  page-break-inside: auto !important;
+                  border-collapse: collapse !important;
+
+                width: auto !important;
+                margin-bottom: 0;
+              }
+              .header-info td {
+                padding: 2px 5px;
+                border: none;
+              }
+
+              table {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  table-layout: fixed !important;
+                  page-break-inside: auto !important;
+                  border-collapse: collapse !important;
+
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  table-layout: fixed !important;
+                  page-break-inside: auto !important;
+                  border-collapse: collapse !important;
+
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 10px;
+                margin-bottom: 20px;
+              }
+              th, td { word-wrap: break-word !important; border: 1px solid #777 !important; padding: 10px !important;
+                border: 1px solid #000;
+                padding: 6px;
+                vertical-align: top;
+                word-wrap: break-word;
+              }
+              th {
+                background-color: #f2f2f2;
+                font-weight: bold;
+              }
+
+              .kartu-soal-box {
+                border: 1px solid #000;
+                margin-bottom: 20px;
+                page-break-inside: avoid;
+                width: 100%;
+              }
+              .kartu-header {
+                border-bottom: 1px solid #000;
+                padding: 10px;
+                font-weight: bold;
+                text-align: center;
+              }
+              .kartu-body {
+                display: flex;
+                padding: 0;
+                border-top: none;
+              }
+              .kartu-left {
+                width: 30%;
+                border-right: 1px solid #000;
+                padding: 10px;
+                box-sizing: border-box;
+              }
+              .kartu-right {
+                width: 70%;
+                padding: 10px;
+                box-sizing: border-box;
+              }
+
+              h2 {
+                text-align: center;
+                margin-bottom: 20px;
+                font-size: 18px;
+                text-transform: uppercase;
+              }
+            </style>
         </head>
         <body>
           ${getWatermarkHtml()}
           ${content}
-          ${docFooter}
+          ${(type === 'naskah' || type === 'kunci') ? '' : docFooter}
           <script>
             window.onload = () => { window.print(); window.close(); }
           </script>
@@ -461,7 +633,7 @@ Berikan output dalam format JSON murni:
       return `
         <h2>KARTU SOAL</h2>
         ${printHeader}
-        ${soalList.map((s: any) => `
+        ${soalList.map((s: any, i: number) => `
           <div class="kartu-soal-box">
              <div class="kartu-header">KARTU SOAL NOMOR ${s.no} (REGULER)</div>
              <div class="kartu-body">
@@ -474,6 +646,7 @@ Berikan output dalam format JSON murni:
                 <div class="kartu-right">
                    <strong>Rumusan Soal / Pertanyaan:</strong><br/>
                    <div style="white-space: pre-wrap; margin-bottom: 10px;">${s.pertanyaan}</div>
+                   ${generatedImages[`reg-${i}`] ? `<div style="margin-bottom: 15px;"><img src="${generatedImages[`reg-${i}`]}" style="max-width: 300px; width: 100%; height: auto; border: 1px solid #ccc; border-radius: 4px;" /></div>` : ''}
                    
                    ${s.opsiTambahan && s.opsiTambahan.length > 0 ? `
                      <div style="margin-left: 15px; margin-bottom: 10px;">
@@ -501,7 +674,7 @@ Berikan output dalam format JSON murni:
           <div style="page-break-before: always;"></div>
           <h2>KARTU SOAL - ADAPTASI ABK (INKLUSI)</h2>
           ${printHeader}
-          ${soalABKList.map((s: any) => `
+          ${soalABKList.map((s: any, i: number) => `
           <div class="kartu-soal-box">
              <div class="kartu-header">KARTU SOAL NOMOR ${s.no} (ABK)</div>
              <div class="kartu-body">
@@ -514,6 +687,7 @@ Berikan output dalam format JSON murni:
                 <div class="kartu-right">
                    <strong>Rumusan Soal / Pertanyaan:</strong><br/>
                    <div style="white-space: pre-wrap; margin-bottom: 10px;">${s.pertanyaan}</div>
+                   ${generatedImages[`abk-${i}`] ? `<div style="margin-bottom: 15px;"><img src="${generatedImages[`abk-${i}`]}" style="max-width: 300px; width: 100%; height: auto; border: 1px solid #ccc; border-radius: 4px;" /></div>` : ''}
                    
                    ${s.opsiTambahan && s.opsiTambahan.length > 0 ? `
                      <div style="margin-left: 15px; margin-bottom: 10px;">
@@ -580,12 +754,13 @@ Berikan output dalam format JSON murni:
     return `
       <h2>NASKAH SOAL</h2>
       ${printHeader}
-      ${soalList.map((s: any) => `
+      ${soalList.map((s: any, i: number) => `
         <div style="margin-bottom: 20px; page-break-inside: avoid;">
           <div style="display: flex;">
             <div style="width: 30px; font-weight: bold;">${s.no}.</div>
             <div style="flex: 1;">
               <div style="white-space: pre-wrap; margin-bottom: 10px;">${s.pertanyaan}</div>
+              ${generatedImages[`reg-${i}`] ? `<div style="margin-bottom: 15px;"><img src="${generatedImages[`reg-${i}`]}" style="max-width: 400px; width: 100%; height: auto; border: 1px solid #ccc; border-radius: 8px;" /></div>` : ''}
               ${s.opsiTambahan && s.opsiTambahan.length > 0 ? `
                 <div style="margin-left: 10px;">
                   ${s.opsiTambahan.map((o: string) => `<div>${o}</div>`).join('')}
@@ -605,12 +780,13 @@ Berikan output dalam format JSON murni:
         <div style="page-break-before: always;"></div>
         <h2>NASKAH SOAL - ADAPTASI ABK (INKLUSI)</h2>
         ${printHeader}
-        ${soalABKList.map((s: any) => `
+        ${soalABKList.map((s: any, i: number) => `
         <div style="margin-bottom: 20px; page-break-inside: avoid;">
           <div style="display: flex;">
             <div style="width: 30px; font-weight: bold;">${s.no}.</div>
             <div style="flex: 1;">
               <div style="white-space: pre-wrap; margin-bottom: 10px;">${s.pertanyaan}</div>
+              ${generatedImages[`abk-${i}`] ? `<div style="margin-bottom: 15px;"><img src="${generatedImages[`abk-${i}`]}" style="max-width: 400px; width: 100%; height: auto; border: 1px solid #ccc; border-radius: 8px;" /></div>` : ''}
               ${s.opsiTambahan && s.opsiTambahan.length > 0 ? `
                 <div style="margin-left: 10px;">
                   ${s.opsiTambahan.map((o: string) => `<div>${o}</div>`).join('')}
@@ -724,8 +900,13 @@ Berikan output dalam format JSON murni:
                       onChange={e => setFormData({...formData, mapel: e.target.value})}
                       className="w-full p-2.5 border border-slate-700 rounded-lg text-sm bg-slate-800 text-white focus:bg-slate-800 focus:border-cyber-blue focus:ring-1 focus:ring-cyber-blue outline-none transition-all"
                     >
-                      {subjectsByLevel[formData.jenjang]?.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                      {getSubjectList().map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
                     </select>
+                    {mapelDescriptions[formData.mapel] && (
+                      <p className="mt-1 text-[10px] text-cyber-blue/60 italic leading-tight">
+                        {mapelDescriptions[formData.mapel]}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -754,6 +935,25 @@ Berikan output dalam format JSON murni:
                     onChange={e => setFormData({...formData, indikator: e.target.value})}
                     placeholder="Contoh: Peserta didik dapat menganalisis..."
                     className="w-full p-2.5 border border-slate-700 rounded-lg text-sm bg-slate-800 text-white placeholder-slate-500 focus:bg-slate-800 focus:border-cyber-blue focus:ring-1 focus:ring-cyber-blue outline-none transition-all h-20"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">Referensi URL/Website (Opsional)</label>
+                  <input
+                    type="url"
+                    value={formData.remixUrl || ''}
+                    onChange={e => setFormData({...formData, remixUrl: e.target.value})}
+                    placeholder="Contoh: https://wikipedia.org/wiki/Pancasila"
+                    className="w-full p-2.5 border border-slate-700 rounded-lg text-sm bg-slate-800 text-white placeholder-slate-500 focus:bg-slate-800 focus:border-cyber-blue focus:ring-1 focus:ring-cyber-blue outline-none transition-all"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1">Sistem akan menelusuri link untuk dijadikan referensi/stimulus soal.</p>
+                </div>
+
+                <div>
+                  <PDFRemixUpload 
+                    onDataExtracted={(data) => setFormData(prev => ({ ...prev, remixData: data }))}
+                    label="Referensi Dokumen Soal (Opsional)"
                   />
                 </div>
 
@@ -865,7 +1065,7 @@ Berikan output dalam format JSON murni:
           </div>
 
           {/* Result Section */}
-          <div className="lg:col-span-8 flex flex-col h-[800px]">
+          <div ref={resultRef} className="lg:col-span-8 flex flex-col h-auto lg:h-[800px] min-h-[600px]">
             <div className="bg-slate-900 rounded-t-2xl border-x border-t border-slate-800 p-2 flex gap-2 relative overflow-hidden flex-wrap">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyber-blue to-cyber-purple opacity-50"></div>
               <button
@@ -894,7 +1094,7 @@ Berikan output dalam format JSON murni:
               </button>
             </div>
 
-            <div className="bg-slate-900 border border-slate-800 rounded-b-2xl p-6 flex-1 overflow-y-auto relative">
+            <div className="bg-slate-900 border border-slate-800 rounded-b-2xl p-6 lg:flex-1 lg:overflow-y-auto relative">
               {error && (
                 <div className="mb-4 p-4 bg-red-900/30 text-red-400 rounded-xl text-sm border border-red-900/50 flex items-start gap-3">
                   <AlertTriangle size={18} className="shrink-0 mt-0.5" />
@@ -902,14 +1102,14 @@ Berikan output dalam format JSON murni:
                 </div>
               )}
 
-              <div className="flex justify-between items-center mb-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <h2 className="text-lg font-bold text-white tracking-wide">
                   Pratinjau {activeSubTab === 'kisi-kisi' ? 'Kisi-kisi' : activeSubTab === 'naskah' ? 'Naskah Soal' : activeSubTab === 'kunci' ? 'Kunci Jawaban' : 'Kartu Soal'}
                 </h2>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                   <button
                     onClick={saveProgress}
-                    className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-bold transition-all flex items-center gap-2"
+                    className="flex-1 sm:flex-none px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2"
                     title="Simpan Progress"
                   >
                     <Save size={16} /> Simpan
@@ -917,16 +1117,16 @@ Berikan output dalam format JSON murni:
                   <button
                     onClick={() => generateContent(activeSubTab === 'kisi-kisi' ? 'kisi-kisi' : 'soal')}
                     disabled={isGenerating}
-                    className={`px-4 py-2 text-white rounded-lg text-sm font-bold transition-all disabled:opacity-50 flex items-center gap-2 shadow-lg bg-cyber-blue hover:bg-cyber-blue/80 shadow-cyber-blue/20`}
+                    className={`flex-1 sm:flex-none px-4 py-2 text-white rounded-lg text-sm font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg bg-cyber-blue hover:bg-cyber-blue/80 shadow-cyber-blue/20`}
                   >
                     {isGenerating ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-                    Generate {activeSubTab === 'kisi-kisi' ? 'Kisi-kisi' : 'Soal'}
+                    <span className="whitespace-nowrap">Generate {activeSubTab === 'kisi-kisi' ? 'Kisi-kisi' : 'Soal'}</span>
                   </button>
                   
                   {((activeSubTab === 'kisi-kisi' && resultKisiKisi) || (activeSubTab !== 'kisi-kisi' && resultSoal)) && (
                     <button
                       onClick={() => handlePrintClick(activeSubTab as 'kisi-kisi' | 'naskah' | 'kunci' | 'kartu')}
-                      className="px-4 py-2 bg-slate-800 text-slate-200 border border-slate-700 rounded-lg text-sm font-bold hover:bg-slate-700 transition-colors flex items-center gap-2"
+                      className="flex-1 sm:flex-none px-4 py-2 bg-slate-800 text-slate-200 border border-slate-700 rounded-lg text-sm font-bold hover:bg-slate-700 transition-colors flex items-center justify-center gap-2"
                     >
                       <Printer size={16} /> Cetak
                     </button>
@@ -993,6 +1193,25 @@ Berikan output dalam format JSON murni:
                           <span className="whitespace-pre-wrap">{s.pertanyaan}</span>
                         </p>
                         
+                        {s.imagePrompt && (
+                          <div className="mb-4 ml-8">
+                            {generatedImages[`reg-${i}`] ? (
+                              <div className="mt-2 mb-4">
+                                <img src={generatedImages[`reg-${i}`]} alt="Ilustrasi Soal" className="max-w-md w-full h-auto rounded-lg border border-slate-700 shadow-md" />
+                              </div>
+                            ) : (
+                              <button 
+                                onClick={() => handleGenerateImage(s.imagePrompt, `reg-${i}`)}
+                                className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg border border-slate-700 transition-colors mb-4"
+                                title={s.imagePrompt}
+                              >
+                                <ImageIcon size={14} className="text-cyber-blue" />
+                                Generate Gambar Ilustrasi
+                              </button>
+                            )}
+                          </div>
+                        )}
+                        
                         {s.opsiTambahan && s.opsiTambahan.length > 0 && (
                           <div className="pl-8 space-y-2">
                             {s.opsiTambahan.map((o: string, j: number) => (
@@ -1031,6 +1250,25 @@ Berikan output dalam format JSON murni:
                               <span className="text-cyber-blue shrink-0">{s.no}.</span>
                               <span className="whitespace-pre-wrap">{s.pertanyaan}</span>
                             </p>
+                            
+                            {s.imagePrompt && (
+                              <div className="mb-4 ml-8">
+                                {generatedImages[`abk-${i}`] ? (
+                                  <div className="mt-2 mb-4">
+                                    <img src={generatedImages[`abk-${i}`]} alt="Ilustrasi Soal" className="max-w-md w-full h-auto rounded-lg border border-slate-700 shadow-md" />
+                                  </div>
+                                ) : (
+                                  <button 
+                                    onClick={() => handleGenerateImage(s.imagePrompt, `abk-${i}`)}
+                                    className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg border border-slate-700 transition-colors mb-4"
+                                    title={s.imagePrompt}
+                                  >
+                                    <ImageIcon size={14} className="text-cyber-blue" />
+                                    Generate Gambar Ilustrasi
+                                  </button>
+                                )}
+                              </div>
+                            )}
                             
                             {s.opsiTambahan && s.opsiTambahan.length > 0 && (
                               <div className="pl-8 space-y-2">
@@ -1172,6 +1410,25 @@ Berikan output dalam format JSON murni:
                              <div className="text-[10px] text-slate-500 font-bold uppercase mb-2">Buku Sumber / Rumusan Soal:</div>
                              <div className="text-white mb-4 flex-1 whitespace-pre-wrap">{s.pertanyaan}</div>
                              
+                             {s.imagePrompt && (
+                               <div className="mb-4">
+                                 {generatedImages[`reg-${i}`] ? (
+                                   <div className="mt-2 mb-4">
+                                     <img src={generatedImages[`reg-${i}`]} alt="Ilustrasi Soal" className="max-w-xs w-full h-auto rounded-lg border border-slate-700 shadow-md" />
+                                   </div>
+                                 ) : (
+                                   <button 
+                                     onClick={() => handleGenerateImage(s.imagePrompt, `reg-${i}`)}
+                                     className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg border border-slate-700 transition-colors mb-4"
+                                     title={s.imagePrompt}
+                                   >
+                                     <ImageIcon size={14} className="text-amber-400" />
+                                     Generate Gambar Ilustrasi
+                                   </button>
+                                 )}
+                               </div>
+                             )}
+
                              {s.opsiTambahan && s.opsiTambahan.length > 0 && (
                                <div className="space-y-1 mb-4 text-sm text-slate-300">
                                  {s.opsiTambahan.map((o: string, j: number) => (
@@ -1240,6 +1497,25 @@ Berikan output dalam format JSON murni:
                                  <div className="text-[10px] text-slate-500 font-bold uppercase mb-2">Buku Sumber / Rumusan Soal:</div>
                                  <div className="text-white mb-4 flex-1 whitespace-pre-wrap">{s.pertanyaan}</div>
                                  
+                                 {s.imagePrompt && (
+                                   <div className="mb-4">
+                                     {generatedImages[`abk-${i}`] ? (
+                                       <div className="mt-2 mb-4">
+                                         <img src={generatedImages[`abk-${i}`]} alt="Ilustrasi Soal" className="max-w-xs w-full h-auto rounded-lg border border-slate-700 shadow-md" />
+                                       </div>
+                                     ) : (
+                                       <button 
+                                         onClick={() => handleGenerateImage(s.imagePrompt, `abk-${i}`)}
+                                         className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg border border-slate-700 transition-colors mb-4"
+                                         title={s.imagePrompt}
+                                       >
+                                         <ImageIcon size={14} className="text-cyber-blue" />
+                                         Generate Gambar Ilustrasi
+                                       </button>
+                                     )}
+                                   </div>
+                                 )}
+    
                                  {s.opsiTambahan && s.opsiTambahan.length > 0 && (
                                    <div className="space-y-1 mb-4 text-sm text-slate-300">
                                      {s.opsiTambahan.map((o: string, j: number) => (

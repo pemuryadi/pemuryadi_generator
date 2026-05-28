@@ -2,61 +2,33 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // ===============================================================
-    // Assumed Data Model
-    // ===============================================================
-    //
-    // Collection: users
-    // Document ID: {userId}
-    // Fields:
-    //   - uid: string (required) - The user's unique ID
-    //   - email: string (required) - The user's email address
-    //   - displayName: string (optional) - The user's display name
-    //   - photoURL: string (optional) - The user's profile picture URL
-    //   - role: string (required) - The user's role (owner, premium, guest)
-    //   - createdAt: string (optional) - When the user was created
-    //
-    // Collection: activityLogs
-    // Document ID: {logId}
-    // Fields:
-    //   - msg: string (required) - The log message
-    //   - status: string (required) - The status of the log
-    //   - color: string (required) - The color class for the status
-    //   - time: string (required) - The formatted time string
-    //   - timestamp: number (required) - The timestamp of the log
-    //
-    // Collection: system
-    // Document ID: stats
-    // Fields:
-    //   - favorites: number (required) - The total number of favorites/clicks
-    //
-    // ===============================================================
+    // Default deny for all collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
 
     // ===============================================================
     // Helper Functions
     // ===============================================================
-    function isAuthenticated() {
+    
+    function isSignedIn() {
       return request.auth != null;
     }
 
     function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
+      return isSignedIn() && request.auth.uid == userId;
     }
 
     function isAdmin() {
-      return isAuthenticated() && (
+      return isSignedIn() && (
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner') ||
         (request.auth.token.email == "p.e.muryadi@gmail.com" && request.auth.token.email_verified == true)
       );
     }
 
-    function uidUnchanged() {
-      return !('uid' in request.resource.data) || request.resource.data.uid == request.auth.uid;
-    }
-
-    function uidNotModified() {
-      return !('uid' in request.resource.data) || request.resource.data.uid == resource.data.uid;
+    function isValidId(id) { 
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
     }
 
     function hasRequiredFields(fields) {
@@ -64,62 +36,72 @@ service cloud.firestore {
     }
 
     function isValidEmail(email) {
-      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+      return email is string && email.matches('^[^@]+@[^@]+\\.[^@]+$');
     }
 
     // ===============================================================
-    // Domain Validators
+    // Entity Validators
     // ===============================================================
-    function isValidUser() {
-      let data = request.resource.data;
-      return hasRequiredFields(['uid', 'email', 'role']) &&
-             data.uid is string && data.uid.size() > 0 && data.uid.size() < 100 &&
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'role']) &&
+             data.uid is string && data.uid.size() > 0 && data.uid.size() < 128 &&
              isValidEmail(data.email) &&
-             data.role in ['owner', 'premium', 'guest'] &&
-             (!('displayName' in data) || (data.displayName is string && data.displayName.size() < 100)) &&
-             (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() < 500)) &&
-             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() < 50));
+             data.role in ['owner', 'premium', 'guest', 'titan', 'supreme', 'ultimate', 'essential'] &&
+             (!('tier' in data) || data.tier in ['Free', 'Essential', 'Premium', 'Ultimate', 'SUPREME', 'Titan', 'owner', 'Free']) &&
+             (!('tokens' in data) || data.tokens is number) &&
+             (!('lastResetDate' in data) || (data.lastResetDate is string && data.lastResetDate.size() < 24)) &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() < 128)) &&
+             (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() < 1024)) &&
+             (!('nip' in data) || (data.nip is string && data.nip.size() < 64)) &&
+             (!('jenjang' in data) || (data.jenjang is string && data.jenjang.size() < 32)) &&
+             (!('tahunPelajaran' in data) || (data.tahunPelajaran is string && data.tahunPelajaran.size() < 32)) &&
+             (!('namaSekolah' in data) || (data.namaSekolah is string && data.namaSekolah.size() < 128)) &&
+             (!('kepalaSekolah' in data) || (data.kepalaSekolah is string && data.kepalaSekolah.size() < 128)) &&
+             (!('nipKepalaSekolah' in data) || (data.nipKepalaSekolah is string && data.nipKepalaSekolah.size() < 64)) &&
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() < 64));
     }
 
-    function isValidActivityLog() {
-      let data = request.resource.data;
-      return hasRequiredFields(['msg', 'status', 'color', 'time', 'timestamp']) &&
-             data.msg is string && data.msg.size() > 0 && data.msg.size() < 500 &&
-             data.status is string && data.status.size() > 0 && data.status.size() < 50 &&
-             data.color is string && data.color.size() > 0 && data.color.size() < 50 &&
-             data.time is string && data.time.size() > 0 && data.time.size() < 50 &&
+    function isValidActivityLog(data) {
+      return data.keys().hasAll(['msg', 'status', 'color', 'time', 'timestamp']) &&
+             data.msg is string && data.msg.size() < 500 &&
+             data.status is string && data.status.size() < 50 &&
+             data.color is string && data.color.size() < 50 &&
+             data.time is string && data.time.size() < 50 &&
              data.timestamp is number;
     }
 
     // ===============================================================
-    // Rules
+    // Collection Rules
     // ===============================================================
 
     match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow create: if isAuthenticated() && isOwner(userId) && isValidUser() && uidUnchanged() && (
-        (request.resource.data.role == 'guest') ||
-        (request.resource.data.role == 'owner' && request.auth.token.email == "p.e.muryadi@gmail.com" && request.auth.token.email_verified == true)
+      allow get: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && (
+        request.resource.data.role == 'guest' || isAdmin()
       );
-      allow update: if isAuthenticated() && isValidUser() && uidNotModified() && (
-        (isOwner(userId) && request.resource.data.role == resource.data.role) ||
-        isAdmin()
-      );
+      allow update: if (isOwner(userId) && 
+                      request.resource.data.uid == resource.data.uid && 
+                      request.resource.data.role == resource.data.role &&
+                      (!('tier' in request.resource.data) || !('tier' in resource.data) || request.resource.data.tier == resource.data.tier) &&
+                      isValidUser(request.resource.data)) || isAdmin();
+      allow delete: if isAdmin();
     }
 
     match /activityLogs/{logId} {
-      allow read: if true;
-      allow create: if isValidActivityLog();
+      allow list: if true;
+      allow get: if true;
+      allow create: if isValidActivityLog(request.resource.data);
       allow update, delete: if isAdmin();
     }
 
     match /system/stats {
       allow read: if true;
-      allow create: if isAdmin() && hasRequiredFields(['favorites']) && request.resource.data.favorites is number;
-      allow update: if hasRequiredFields(['favorites']) && 
-                    request.resource.data.favorites is number &&
-                    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['favorites']) &&
-                    request.resource.data.favorites == resource.data.favorites + 1;
+      allow create: if isAdmin();
+      allow update: if (hasRequiredFields(['favorites']) && 
+                      request.resource.data.favorites is number &&
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['favorites']) &&
+                      request.resource.data.favorites == resource.data.favorites + 1) || isAdmin();
     }
   }
 }

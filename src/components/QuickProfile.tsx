@@ -47,7 +47,7 @@ export default function QuickProfile() {
   };
 
   return (
-    <div className="cyber-card p-4 rounded-xl bg-gradient-to-br from-cyber-blue/5 to-transparent border border-cyber-blue/20 w-full max-w-[400px]">
+    <div className="cyber-card p-4 rounded-xl bg-gradient-to-br from-cyber-blue/5 to-transparent border border-cyber-blue/20 w-full h-full">
       <div className="flex items-center gap-2 mb-3 border-b border-cyber-blue/10 pb-2">
         <User size={16} className="text-cyber-blue" />
         <h3 className="text-xs font-bold text-cyber-blue uppercase tracking-widest">Identitas Profil</h3>
